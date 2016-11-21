@@ -4,6 +4,10 @@
 #include <openssl/evp.h>
 #include <openssl/err.h>
 #include <string.h>
+#include <unistd.h>
+
+#define FILEPATH "/home/leo/Documents/master/connection_string"
+#define KEYPATH "/home/leo/Documents/master/key"
 
 int encrypt(unsigned char *plaintext, int plaintext_len, unsigned char *key,
             unsigned char *iv, unsigned char *ciphertext);
@@ -12,6 +16,11 @@ int decrypt(unsigned char *ciphertext, int ciphertext_len, unsigned char *key,
 void handleErrors(void);
 
 int main(int argc, char **argv) {
+    FILE* fout;
+    FILE* fin;
+    char* data;
+    int data_len;
+
     /* Key and IV */
     unsigned char key[32], iv[16];
 
@@ -47,12 +56,29 @@ int main(int argc, char **argv) {
     ciphertext_len = encrypt (plaintext, strlen ((char *)plaintext), key, iv,
                               ciphertext);
 
+    fout = fopen(FILEPATH, "wb");
+    write(fileno(fout), iv, sizeof iv);
+    write(fileno(fout), ciphertext, ciphertext_len);
+    fclose(fout);
+
     /* Do something useful with the ciphertext here */
     printf("Ciphertext is:\n");
     BIO_dump_fp (stdout, (const char *)ciphertext, ciphertext_len);
+    printf("IV is:\n");
+    BIO_dump_fp (stdout, (const char *)iv, sizeof iv);
 
     /* Decrypt the ciphertext */
-    decryptedtext_len = decrypt(ciphertext, ciphertext_len, key, iv,
+    fin = fopen(FILEPATH, "r");
+    fseek(fin, 0, SEEK_END);
+    data_len = (int)ftell(fin);
+    fseek(fin, 0, SEEK_SET);
+    data = (char*)malloc(data_len*sizeof(char));
+    if (data) {
+        fread (data, 1, data_len, fin);
+    }
+    fclose(fin);
+
+    decryptedtext_len = decrypt(data + 16 * sizeof(char), data_len - 16, key, iv,
                                 decryptedtext);
 
     /* Add a NULL terminator. We are expecting printable text */
