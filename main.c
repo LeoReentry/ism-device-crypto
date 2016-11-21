@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
 
     /* Key and IV */
     unsigned char key[32], iv[16];
-
+    unsigned char newKey[32], newIv[16];
     /* Message to be encrypted */
     unsigned char *plaintext =
             (unsigned char *)"The quick brown fox jumps over the lazy dog";
@@ -60,6 +60,9 @@ int main(int argc, char **argv) {
     write(fileno(fout), iv, sizeof iv);
     write(fileno(fout), ciphertext, ciphertext_len);
     fclose(fout);
+    fout = fopen(KEYPATH, "wb");
+    write(fileno(fout), key, sizeof key);
+    fclose(fout);
 
     /* Do something useful with the ciphertext here */
     printf("Ciphertext is:\n");
@@ -70,15 +73,22 @@ int main(int argc, char **argv) {
     /* Decrypt the ciphertext */
     fin = fopen(FILEPATH, "r");
     fseek(fin, 0, SEEK_END);
-    data_len = (int)ftell(fin);
+    data_len = (int)ftell(fin) - sizeof newIv;
     fseek(fin, 0, SEEK_SET);
-    data = (char*)malloc(data_len*sizeof(char));
+    data = (char*)malloc(data_len * sizeof(char));
     if (data) {
+        fread (newIv, 1, sizeof newIv, fin);
         fread (data, 1, data_len, fin);
     }
     fclose(fin);
 
-    decryptedtext_len = decrypt(data + 16 * sizeof(char), data_len - 16, key, iv,
+    fin = fopen(KEYPATH, "r");
+    if (newKey) {
+        fread(newKey, 1, 32, fin);
+    }
+    fclose(fin);
+
+    decryptedtext_len = decrypt(data, data_len, newKey, newIv,
                                 decryptedtext);
 
     /* Add a NULL terminator. We are expecting printable text */
@@ -91,6 +101,8 @@ int main(int argc, char **argv) {
     /* Clean up */
     EVP_cleanup();
     ERR_free_strings();
+
+    free(data);
 
 }
 void handleErrors(void)
