@@ -15,11 +15,8 @@
 #include <trousers/trousers.h>
 #include <sys/stat.h>
 
-#define KEYPATH "/home/leo/Documents/master/BindKey.pub"
-#define FILEPATH "/home/leo/Documents/master/secret.txt"
-#define ENCPATH "/home/leo/Documents/master/secret.tpm"
-
-
+#define KEYPATH "/home/leo/Documents/master/key"
+#define FILEPATH "/home/leo/Documents/master/connectionstring"
 #define KEY_UUID {0,0,0,0,0,{0,0,0,2,10}}
 
 #define TPM_GLOBAL_H
