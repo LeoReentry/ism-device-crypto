@@ -40,8 +40,12 @@ void TPM_CloseContext(void);
 int fileExists(const char *filename);
 /// Closes open handles and exits with failure code.
 void ExitFailure(void);
+/// Prints depending on verbosity level
+/// \param str String to print
+void print_info(char* str);
 
 // GLOBAL VARIABLES
+int verbose;
 TSS_HCONTEXT hContext;
 TSS_HTPM hTPM;
 TSS_HPOLICY hTPMPolicy;

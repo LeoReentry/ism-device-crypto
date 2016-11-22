@@ -5,37 +5,62 @@
 #include "global.h"
 #include <unistd.h>
 
-int verbose = 0;
-void print_info(char* str);
+/// Decrypts AES key from file to memory.
+/// \param key Buffer in which key is written. Memory allocated by function.
+/// \param length Length of key. Is set by function.
+/// \return integer
+/// \retval 0 for success
+/// \retval 1 for failure
 int UnbindAESKey(BYTE* key, int* length);
 
 
 int main(int argc, char** argv) {
+    if (!fileExists(KEYPATH)) {
+        printf("Error. Couldn't find key file. Please make sure your encryption key is present.\n");
+        exit(EXIT_FAILURE);
+    }
     // Command line switches
     int opt;
     // Check switches
-    while(((opt = getopt(argc, argv, "v")) != -1)) {
+    while(((opt = getopt(argc, argv, "asdfhv")) != -1)) {
         switch (opt) {
+            // Switch -h for help
+            case 'h':
+                printf("\n\nThis program encrypts data using AES-256 in CBC mode. The encryption key is the key created using create_key. "\
+                       "It will be unbound by the TPM for the time of the encryption and then be bound again.\n\n" \
+                       "Usage:\n\tencrypt_data -v data\n" \
+                       "\t\t-h\tHelp. Displays this help.\n" \
+                       "\t\t-v\tVerbose. Displays information during the process.\n" \
+                       "\tThe data must be passed as last command line argument.\n");
+                exit(EXIT_SUCCESS);
             // Switch -v for verbose
-            case 'v': verbose = 1; break;
+            case 'v':
+                verbose = 1;
+                break;
             default: break;
         }
     }
+    // Check that we have an additional argument
+    if (!(argc-optind)){
+        printf("Please pass the data to be encrypted as a string.");
+        exit(EXIT_FAILURE);
+    }
+
     // Initialize TPM context
     if (TPM_InitContext())
         ExitFailure();
+
+    // GET AES key
     BYTE* key;
     int length;
-    UnbindAESKey(key, &length);
+    if(UnbindAESKey(key, &length))
+        ExitFailure();
+
+    
 
     return 0;
 }
 
-void print_info(char* str) {
-    if (verbose) {
-        printf(str);
-    }
-}
 
 int UnbindAESKey(BYTE* key, int* length) {
     // TPM variables
@@ -50,6 +75,8 @@ int UnbindAESKey(BYTE* key, int* length) {
     // Unencrypted key
     UINT32 keyLength;
 
+    print_info("Reading AES key from file... ");
+    fflush(stdout);
     // Read encrypted data from file
     fin = fopen(KEYPATH, "r");
     fseek(fin, 0, SEEK_END);
@@ -60,6 +87,8 @@ int UnbindAESKey(BYTE* key, int* length) {
         fread (encKey, 1, encKeyLength, fin);
     }
     fclose(fin);
+    print_info("Success.\nUnbinding AES key... ");
+    fflush(stdout);
 
     // Get key
     result = Tspi_Context_GetKeyByUUID(hContext, TSS_PS_TYPE_SYSTEM, BindKey_UUID, &hBindKey);
@@ -100,8 +129,9 @@ int UnbindAESKey(BYTE* key, int* length) {
     // Feed encrypted data into data object.
     result = Tspi_SetAttribData(hEncData, TSS_TSPATTRIB_ENCDATA_BLOB, TSS_TSPATTRIB_ENCDATABLOB_BLOB, encKeyLength, encKey);
     if(result != TSS_SUCCESS) {
-//        closeTPM();
+        TPM_CloseContext();
         printf("Error during data unbinding: Feed encrypted data into object. Error 0x%08x:%s\n", result, Trspi_Error_String(result));
+        return 1;
     }
 
     // Unbind data
@@ -112,6 +142,7 @@ int UnbindAESKey(BYTE* key, int* length) {
         return 1;
     }
 
+    print_info("Success.\n");
     free(encKey);
     *length = keyLength;
     // Close handles

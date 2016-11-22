@@ -6,10 +6,16 @@
 TSS_HKEY hSRK=0;
 TSS_HPOLICY hSRKPolicy=0;
 TSS_UUID SRK_UUID=TSS_UUID_SRK;
+int verbose = 0;
 
 void ExitFailure(void) {
     TPM_CloseContext();
     exit(EXIT_FAILURE);
+}
+void print_info(char* str) {
+    if (verbose) {
+        printf(str);
+    }
 }
 int TPM_InitContext(void) {
     // Set wks to the well known secret: 20 bytes of 0's
