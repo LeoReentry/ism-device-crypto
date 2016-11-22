@@ -80,6 +80,8 @@ int main(int argc, char** argv) {
     int ciphertext_len;
     unsigned char* plaintext = (unsigned char*)argv[optind];
     unsigned char iv[16];
+    print_info("Generating IV... ");
+    fflush(stdout);
     // Generate Initialization Vector
     if (!RAND_bytes(iv, sizeof iv)) {
         // Minimum of 120 byte when using error string
@@ -89,6 +91,8 @@ int main(int argc, char** argv) {
         free(err);
         return 1;
     }
+    print_info("Success.\nEncrypting data... ");
+    fflush(stdout);
     // Calculate ciphertext length
     ciphertext_len = (int)(strlen((char*)plaintext)/16 + 1) * 16;
     // Allocate memory
@@ -96,9 +100,11 @@ int main(int argc, char** argv) {
     // Encrypt data
     int check_len = encrypt (plaintext, strlen ((char *)plaintext), key, iv,
                               ciphertext);
+    // Clear key memory
+    memset(key, 0, sizeof key);
     // If data isn't as long as we calculated, something went wrong
     if (check_len != ciphertext_len) {
-        printf("Encryption error.");
+        printf("Encryption error.\n");
         TPM_CloseContext();
         EVP_cleanup();
         ERR_free_strings();
@@ -106,15 +112,21 @@ int main(int argc, char** argv) {
         free(key);
         exit(EXIT_FAILURE);
     }
+    print_info("Success.\n");
 
     // Ok, now we can save the encrypted data + IV to file
-    // TODO: save to file
+    FILE* fout = fopen(FILEPATH, "wb");
+    write(fileno(fout), iv, sizeof iv);
+    write(fileno(fout), ciphertext, ciphertext_len);
+    fclose(fout);
 
-
+    // Close everything
     TPM_CloseContext();
-
-
-    return 0;
+    EVP_cleanup();
+    ERR_free_strings();
+    free(ciphertext);
+    free(key);
+    exit(EXIT_SUCCESS);
 }
 
 
