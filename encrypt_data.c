@@ -35,7 +35,7 @@ int main(int argc, char** argv) {
     // Command line switches
     int opt;
     // Check switches
-    while(((opt = getopt(argc, argv, "asdfhv")) != -1)) {
+    while(((opt = getopt(argc, argv, "hv")) != -1)) {
         switch (opt) {
             // Switch -h for help
             case 'h':
