@@ -41,10 +41,7 @@ int TPM_CreateKey(){
                          TSS_KEY_AUTHORIZATION |
                          TSS_KEY_NOT_MIGRATABLE |
                          TSS_KEY_STRUCT_KEY12;
-    // File handling for public key
-    BYTE *pubKey;
-    UINT32 pubKeySize;
-    FILE *fout;
+    
     // If key exists
     int exists = fileExists(KEYPATH);
 
