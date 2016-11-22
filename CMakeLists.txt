@@ -3,5 +3,5 @@ project(enc)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
 
-add_executable(enc main.c)
+add_executable(enc main.c createKey.c)
 target_link_libraries(enc crypto)
