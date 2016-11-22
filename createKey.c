@@ -24,9 +24,14 @@ void ExitFailure(void);
 /// \retval 0 for success
 /// \retval 1 for failure
 int CreateAESKey(void);
+/// Binds the AES key to the TPM.
+/// \return integer
+/// \retval 0 for success
+/// \retval 1 for failure
+int BindAESKey(void);
 
 int override = 0; ///< Tells whether to override existing key or not.
-unsigned char key[32]; ///< Contains the AES encryption key. 256 bit / 8 = 32B
+unsigned char key[KEY_SIZE]; ///< Contains the AES encryption key. 256 bit / 8 = 32B
 
 int main(int argc, char **argv) {
     // Command line switches
@@ -50,6 +55,9 @@ int main(int argc, char **argv) {
         ExitFailure();
     // Create AES key
     if (CreateAESKey())
+        ExitFailure();
+    // Bind AES key
+    if (BindAESKey())
         ExitFailure();
     // Close all open TPM handles
     TPM_CloseContext();
@@ -146,7 +154,7 @@ int TPM_CreateKey(void) {
         printf("Error during Key creation: Create key. Error 0x%08x:%s\n", result, Trspi_Error_String(result));
         return 1;
     }
-    printf("Done.\n");
+    printf("Success.\n");
 
     // Register that key with UUID
     printf("Registering key blob for later retrieval... " );
@@ -157,7 +165,7 @@ int TPM_CreateKey(void) {
         printf("Error during Key creation: Register key. Error 0x%08x:%s\n", result, Trspi_Error_String(result));
         return 1;
     }
-    printf("Done.\n");
+    printf("Success.\n");
 
     // Flush the secret
     result = Tspi_Policy_FlushSecret(hKeyPolicy);
@@ -185,4 +193,71 @@ int CreateAESKey(void) {
     }
     printf("Success.\n");
     return 0;
+}
+int BindAESKey(void) {
+    // TPM variables
+    TSS_UUID BindKey_UUID = KEY_UUID;
+    TSS_HKEY hBindKey;
+    TSS_HOBJECT hEncData;
+    // File handling
+    FILE *f;
+    UINT32 boundDataLength;
+    BYTE *boundData;
+    printf("Bind AES key to TPM... ");
+    fflush(stdout);
+    // Get reference to key
+    result = Tspi_Context_GetKeyByUUID(hContext, TSS_PS_TYPE_SYSTEM, BindKey_UUID, &hBindKey);
+    if(result != TSS_SUCCESS) {
+        TPM_CloseContext();
+        printf("Error during data binding: Get key by UUID. Error 0x%08x:%s\n", result, Trspi_Error_String(result));
+        return 1;
+    }
+    // Load the key with wrapping key
+    result = Tspi_Key_LoadKey(hBindKey, hSRK);
+    if(result != TSS_SUCCESS) {
+        TPM_CloseContext();
+        printf("Error during data binding: Load key. Error 0x%08x:%s\n", result, Trspi_Error_String(result));
+        return 1;
+    }
+
+    // Create a data object, fill it with clear text and then bind it
+    result = Tspi_Context_CreateObject(hContext, TSS_OBJECT_TYPE_ENCDATA, TSS_ENCDATA_BIND, &hEncData);
+    if(result != TSS_SUCCESS) {
+        TPM_CloseContext();
+        printf("Error during data binding: Create data. Error 0x%08x:%s\n", result, Trspi_Error_String(result));
+        return 1;
+    }
+    // Bind data
+    result = Tspi_Data_Bind(hEncData, hBindKey, sizeof key, (BYTE*)key);
+    if(result != TSS_SUCCESS) {
+        TPM_CloseContext();
+        printf("Error during data binding: Bind data. Error 0x%08x:%s\n", result, Trspi_Error_String(result));
+        return 1;
+    }
+    // Get encrypted data out of data object
+    result = Tspi_GetAttribData(hEncData, TSS_TSPATTRIB_ENCDATA_BLOB, TSS_TSPATTRIB_ENCDATABLOB_BLOB, &boundDataLength, &boundData);
+    if(result != TSS_SUCCESS) {
+        TPM_CloseContext();
+        printf("Error during data binding: Retrieve bound data. Error 0x%08x:%s\n", result, Trspi_Error_String(result));
+        return 1;
+    }
+
+    // Write encrypted data to file
+    f = fopen(KEYPATH, "wb");
+    write(fileno(f), boundData, boundDataLength);
+    fclose(f);
+
+    result = Tspi_Key_UnloadKey(hBindKey);
+    if(result != TSS_SUCCESS) {
+        TPM_CloseContext();
+        printf("Error during data binding: Unload key. Error 0x%08x:%s\n", result, Trspi_Error_String(result));
+        return 1;
+    }
+    printf("Success.\n");
+    // If program was successful, clear AES key from memory. If it was unsuccessful, this isn't necessary, since the key will not be used
+    memset(key, 0, sizeof key);
+    Tspi_Context_CloseObject(hContext, hEncData);
+    Tspi_Context_CloseObject(hContext, hBindKey);
+    return 0;
+
 }
