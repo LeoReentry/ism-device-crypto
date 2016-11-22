@@ -1,4 +1,5 @@
 
+#include <openssl/err.h>
 #include "global.h"
 
 
@@ -107,4 +108,10 @@ int fileExists(const char *filename) {
     struct stat st;
     int result = stat(filename, &st);
     return result == 0;
+}
+
+void handleErrors(void)
+{
+    ERR_print_errors_fp(stderr);
+    abort();
 }

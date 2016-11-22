@@ -43,6 +43,8 @@ void ExitFailure(void);
 /// Prints depending on verbosity level
 /// \param str String to print
 void print_info(char* str);
+/// Handles errors in error stack for openSSL
+void handleErrors(void);
 
 // GLOBAL VARIABLES
 int verbose;

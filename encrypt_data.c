@@ -4,6 +4,10 @@
 
 #include "global.h"
 #include <unistd.h>
+#include <openssl/conf.h>
+#include <openssl/evp.h>
+#include <openssl/err.h>
+#include <openssl/rand.h>
 
 /// Decrypts AES key from file to memory.
 /// \param key Buffer in which key is written. Memory allocated by function.
@@ -11,7 +15,16 @@
 /// \return integer
 /// \retval 0 for success
 /// \retval 1 for failure
-int UnbindAESKey(BYTE* key, int* length);
+int UnbindAESKey(BYTE** key, int* length);
+/// Function that encrypts the data.
+/// \param plaintext Plaintext to be encrypted.
+/// \param plaintext_len Length of plaintext.
+/// \param key Key used for encryption.
+/// \param iv Initialization Vector used for encryption.
+/// \param ciphertext Resulting ciphertext.
+/// \return Length of ciphertext.
+int encrypt(unsigned char *plaintext, int plaintext_len, unsigned char *key,
+            unsigned char *iv, unsigned char *ciphertext);
 
 
 int main(int argc, char** argv) {
@@ -40,11 +53,17 @@ int main(int argc, char** argv) {
             default: break;
         }
     }
+
     // Check that we have an additional argument
     if (!(argc-optind)){
         printf("Please pass the data to be encrypted as a string.");
         exit(EXIT_FAILURE);
     }
+
+    // Init openSSL library
+    ERR_load_crypto_strings();
+    OpenSSL_add_all_algorithms();
+    OPENSSL_config(NULL);
 
     // Initialize TPM context
     if (TPM_InitContext())
@@ -52,17 +71,54 @@ int main(int argc, char** argv) {
 
     // GET AES key
     BYTE* key;
-    int length;
-    if(UnbindAESKey(key, &length))
+    int key_length;
+    if(UnbindAESKey(&key, &key_length))
         ExitFailure();
 
-    
+    // Encrypt data
+    // Variables
+    int ciphertext_len;
+    unsigned char* plaintext = (unsigned char*)argv[optind];
+    unsigned char iv[16];
+    // Generate Initialization Vector
+    if (!RAND_bytes(iv, sizeof iv)) {
+        // Minimum of 120 byte when using error string
+        char *err = malloc(120*sizeof(char));
+        ERR_error_string(ERR_get_error(), err);
+        printf("Error during IV creation: %s\n", err);
+        free(err);
+        return 1;
+    }
+    // Calculate ciphertext length
+    ciphertext_len = (int)(strlen((char*)plaintext)/16 + 1) * 16;
+    // Allocate memory
+    unsigned char *ciphertext = malloc(ciphertext_len * sizeof(char));
+    // Encrypt data
+    int check_len = encrypt (plaintext, strlen ((char *)plaintext), key, iv,
+                              ciphertext);
+    // If data isn't as long as we calculated, something went wrong
+    if (check_len != ciphertext_len) {
+        printf("Encryption error.");
+        TPM_CloseContext();
+        EVP_cleanup();
+        ERR_free_strings();
+        free(ciphertext);
+        free(key);
+        exit(EXIT_FAILURE);
+    }
+
+    // Ok, now we can save the encrypted data + IV to file
+    // TODO: save to file
+
+
+    TPM_CloseContext();
+
 
     return 0;
 }
 
 
-int UnbindAESKey(BYTE* key, int* length) {
+int UnbindAESKey(BYTE** key, int* length) {
     // TPM variables
     TSS_HKEY hBindKey = 0;
     TSS_UUID BindKey_UUID = KEY_UUID;
@@ -135,7 +191,7 @@ int UnbindAESKey(BYTE* key, int* length) {
     }
 
     // Unbind data
-    result = Tspi_Data_Unbind(hEncData, hBindKey, &keyLength, &key);
+    result = Tspi_Data_Unbind(hEncData, hBindKey, &keyLength, key);
     if(result != TSS_SUCCESS) {
         TPM_CloseContext();
         printf("Error during data unbinding: Unbind data. Error 0x%08x:%s\n", result, Trspi_Error_String(result));
@@ -151,4 +207,38 @@ int UnbindAESKey(BYTE* key, int* length) {
     Tspi_Context_CloseObject(hContext, hEncData);
     Tspi_Context_CloseObject(hContext, hBindKey);
     return 0;
+}
+
+int encrypt(unsigned char *plaintext, int plaintext_len, unsigned char *key, unsigned char *iv, unsigned char *ciphertext) {
+    EVP_CIPHER_CTX *ctx;
+
+    int len;
+    int ciphertext_len;
+
+    // Create and init the context
+    if(!(ctx = EVP_CIPHER_CTX_new())) handleErrors();
+
+    /* Initialise the encryption operation. IMPORTANT - ensure you use a key
+     * and IV size appropriate for your cipher
+     * Here, key: 256 bits, IV: 128 bits */
+    if(1 != EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv))
+        handleErrors();
+
+    /* Provide the message to be encrypted, and obtain the encrypted output.
+     * EVP_EncryptUpdate can be called multiple times if necessary
+     */
+    if(1 != EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext, plaintext_len))
+        handleErrors();
+    ciphertext_len = len;
+
+    /* Finalise the encryption. Further ciphertext bytes may be written at
+     * this stage.
+     */
+    if(1 != EVP_EncryptFinal_ex(ctx, ciphertext + len, &len)) handleErrors();
+    ciphertext_len += len;
+
+    /* Clean up */
+    EVP_CIPHER_CTX_free(ctx);
+
+    return ciphertext_len;
 }
