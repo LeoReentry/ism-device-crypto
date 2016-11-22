@@ -38,6 +38,8 @@ void TPM_CloseContext(void);
 /// \retval 1 for true
 /// \retval 0 for false
 int fileExists(const char *filename);
+/// Closes open handles and exits with failure code.
+void ExitFailure(void);
 
 // GLOBAL VARIABLES
 TSS_HCONTEXT hContext;

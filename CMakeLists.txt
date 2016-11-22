@@ -5,5 +5,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
 
 add_executable(create_key create_key.c global.c)
 target_link_libraries(create_key tspi crypto)
+add_executable(encrypt_data encrypt_data.c global.c)
+target_link_libraries(encrypt_data tspi crypto)
 add_executable(enc main.c)
 target_link_libraries(enc crypto)

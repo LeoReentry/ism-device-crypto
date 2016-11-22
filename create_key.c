@@ -16,8 +16,6 @@ int TPM_CreateKey(void);
 /// it will ignore whether the key exists or not.
 /// \return integer
 int CheckKey(void);
-/// Closes open handles and exits with failure code.
-void ExitFailure(void);
 /// Creates an AES key using the openSSL provided random function. It feeds off of /dev/urandom, so make sure enough
 /// entropy is available. Otherwise it fail if it can't generate more itself
 /// \return integer
@@ -64,10 +62,7 @@ int main(int argc, char **argv) {
     return EXIT_SUCCESS;
 }
 
-void ExitFailure(void) {
-    TPM_CloseContext();
-    exit(EXIT_FAILURE);
-}
+
 int CheckKey(void) {
     // Check if key exists by loading it from UUID and checking if the keyfile is present.
     TSS_HKEY hKey;
