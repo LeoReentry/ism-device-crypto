@@ -23,11 +23,7 @@ int UuidExists(void) {
     result = Tspi_Context_LoadKeyByUUID(hContext, TSS_PS_TYPE_SYSTEM, uuid, &hKey);
     Tspi_Context_CloseObject(hContext, hKey);
 
-    if (result == TSS_SUCCESS) {
-        printf("Key already exists. If you wish to override the existing key, please run this program with switch -f. This will create a new AES-256 key and a new TPM key.\n");
-        return 1;
-    }
-    return 0;
+    return result == TSS_SUCCESS;
 }
 
 int TPM_InitContext(void) {
