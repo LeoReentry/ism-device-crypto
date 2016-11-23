@@ -1,10 +1,11 @@
 #define _GNU_SOURCE
 #include <stdio.h>
-#include "global.h"
 #include <unistd.h>
 #include <dirent.h>
 #include <errno.h>
-#include <sys/stat.h>
+#include "global.h"
+#include "tpm.h"
+
 /// Checks if exclusive switches have been set correctly
 void check_switches(int es);
 
@@ -83,8 +84,6 @@ int main(int argc, char** argv) {
         asprintf(&filepath, DATA_FILE, dir_path, optarg);
     }
 
-
-    printf("Opening directory.\n");
     // Create data directory if not existent
     DIR* dir = opendir(dir_path);
     if (dir) // Directory exists, just close it again
@@ -97,6 +96,41 @@ int main(int argc, char** argv) {
             exit(EXIT_FAILURE);
         }
     }
+
+    // Initialize TPM
+    if(TPM_InitContext())
+        ExitFailure();
+    // If no TPM key exists, create a new one
+    if(!UuidExists()) {
+        print_info("No TPM key present. Creating new one... ");
+        fflush(stdout);
+        if (TPM_CreateKey())
+            ExitFailure();
+        print_info("Success\n");
+    }
+
+
+    // Ok, we're done, now we can finally do stuff
+    // Check the type of operation we'll have to do (only one is possible)
+    // AKA this is how a shitty state machine looks like
+    if (encryption) {
+
+    }
+    else if (decryption) {
+
+    }
+    else if (renew_key) {
+
+    }
+    else if (create_key) {
+
+    }
+
+    TPM_CloseContext();
+    free(dir_path);
+    free(keypath);
+    free(filepath);
+    exit(EXIT_SUCCESS);
 }
 
 void check_switches(int es) {

@@ -8,6 +8,9 @@
 #include <tss/tss_typedef.h>
 #include <tss/tss_structs.h>
 
+/// Checks if a key with the UUID already exists in the TPM
+/// \return integer, 1 for true, 0 for false
+int UuidExists(void);
 /// \brief Initializes handles that are necessary for all TPM operations.
 ///
 /// Initializes handles for Context and SRK, gets their policies and sets their policy secrets to the well-known secrets.

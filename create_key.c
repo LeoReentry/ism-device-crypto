@@ -80,6 +80,7 @@ int CheckKey(void) {
     }
     return 0;
 }
+
 int CreateAESKey(void) {
     printf("Creating AES key... ");
     fflush(stdout);

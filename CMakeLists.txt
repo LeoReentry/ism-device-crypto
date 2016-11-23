@@ -3,7 +3,7 @@ project(enc)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
 
-add_executable(deh main.c global.h global.c tpm.h tpm.c)
+add_executable(deh main.c global.h global.c tpm.h tpm.c aes.h aes.c)
 target_link_libraries(deh tspi crypto)
 
 add_executable(encrypt_data encrypt_data.c global.c tpm.c)
