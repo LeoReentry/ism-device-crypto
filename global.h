@@ -15,10 +15,9 @@
 #include <trousers/trousers.h>
 #include <sys/stat.h>
 
-#define KEYFILE "~/.deh/%s.k"
-#define DATAFILE "~/.deh/%s.f"
-#define PATHLENGTH 9
-#define PATH "~/.deh/"
+#define KEY_FILE "%s/%s.k"
+#define DATA_FILE "%s/%s.f"
+#define PATH "%s/.deh"
 
 #define KEYPATH "/home/leo/Documents/master/key"
 //#define FILEPATH "/home/leo/Documents/master/connectionstring"

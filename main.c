@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include "global.h"
 #include <unistd.h>
@@ -12,6 +13,13 @@ int main(int argc, char** argv) {
     char *keypath, *filepath;
     // Program behaviour
     int encryption = 0, decryption = 0, create_key = 0, renew_key = 0;
+    // Directories
+    // Path to home directory
+    char *home_path = getenv ("HOME");
+    // Path to directory for settings of this program
+    // Asprintf allocates memory by itself
+    char *dir_path;
+    asprintf(&dir_path, PATH, home_path);
 
     // Command line switches
     int opt;
@@ -45,10 +53,9 @@ int main(int argc, char** argv) {
                 print_info("Using name ");
                 print_info(optarg);
                 print_info(".\n");
-                keypath = malloc(PATHLENGTH + strlen(optarg));
-                sprintf(keypath, KEYFILE, optarg);
-                filepath = malloc(PATHLENGTH + strlen(optarg));
-                sprintf(filepath, DATAFILE, optarg);
+                // Get path to key file and data file
+                asprintf(&keypath, KEY_FILE, dir_path, optarg);
+                asprintf(&filepath, DATA_FILE, dir_path, optarg);
                 break;
             // Switch -r for renewing a key
             case 'r':
@@ -64,7 +71,6 @@ int main(int argc, char** argv) {
                 break;
         }
     }
-
     // Program defaults to encryption mode
     if (!exclusive_switch) {
         encryption = 1;

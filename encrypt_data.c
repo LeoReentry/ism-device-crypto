@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
             case 'k':
                 printf("Encrypting data with key %s\n", optarg);
                 char* keypath = malloc(strlen(KEYPATH) + strlen(optarg) );
-                sprintf(keypath, KEYFILE, optarg);
+                sprintf(keypath, KEY_FILE,"", optarg);
                 if (!fileExists(keypath)) {
                     printf("Error. Key does not exist. Please call create_key first and create a key with the name.\n");
                     exit(EXIT_FAILURE);
