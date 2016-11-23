@@ -2,7 +2,9 @@
 #include <stdio.h>
 #include "global.h"
 #include <unistd.h>
-
+#include <dirent.h>
+#include <errno.h>
+#include <sys/stat.h>
 /// Checks if exclusive switches have been set correctly
 void check_switches(int es);
 
@@ -74,6 +76,20 @@ int main(int argc, char** argv) {
     // Program defaults to encryption mode
     if (!exclusive_switch) {
         encryption = 1;
+    }
+
+    printf("Opening directory.\n");
+    // Create data directory if not existent
+    DIR* dir = opendir(dir_path);
+    if (dir) // Directory exists, just close it again
+        closedir(dir);
+    else if(ENOENT == errno) {
+        int stat = mkdir(dir_path, 0777);
+        if ( !stat ); // Everything ok.
+        else { // Can't create directory
+            printf("Error. Can't create settings directory in path:\n%s\nPlease fix before running this program again.\n", dir_path);
+            exit(EXIT_FAILURE);
+        }
     }
 }
 
