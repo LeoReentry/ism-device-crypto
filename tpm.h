@@ -23,9 +23,10 @@ int TPM_InitContext(void);
 /// \retval 0 for success
 /// \retval 1 for failure
 int TPM_CreateKey(void);
-/// Binds the AES key to the TPM.
+/// Binds the AES key to the TPM and saves encrypted key to file.
 /// \param key Pointer to the key to bind.
 /// \param key_size Size of key in bytes.
+/// \param filepath Path to file in which key will be stored.
 /// \return integer
 /// \retval 0 for success
 /// \retval 1 for failure
@@ -33,10 +34,11 @@ int TPM_BindAESKey(BYTE *key, UINT32 key_size, char *filepath);
 /// Decrypts AES key from file to memory.
 /// \param key Buffer in which key is written. Memory allocated by function.
 /// \param length Length of key. Is set by function.
+/// \param filepath Path to file in which encrypted AES key is stored.
 /// \return integer
 /// \retval 0 for success
 /// \retval 1 for failure
-int TPM_UnbindAESKey(BYTE **key, int *length);
+int TPM_UnbindAESKey(BYTE **key, int *length, char *filepath);
 /// \brief Closes the handles opened before.
 /// \return void
 void TPM_CloseContext(void);

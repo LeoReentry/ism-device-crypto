@@ -58,8 +58,8 @@ int main(int argc, char** argv) {
                 print_info(optarg);
                 print_info(".\n");
                 // Get path to key file and data file
-                asprintf(&keypath, KEY_FILE, dir_path, DEFAULT_NAME);
-                asprintf(&filepath, DATA_FILE, dir_path, DEFAULT_NAME);
+                asprintf(&keypath, KEY_FILE, dir_path, optarg);
+                asprintf(&filepath, DATA_FILE, dir_path, optarg);
                 // Define that name is set by user
                 name = 1;
                 break;
@@ -81,8 +81,8 @@ int main(int argc, char** argv) {
     if (!exclusive_switch)
         encryption = 1;
     if (!name) {
-        asprintf(&keypath, KEY_FILE, dir_path, optarg);
-        asprintf(&filepath, DATA_FILE, dir_path, optarg);
+        asprintf(&keypath, KEY_FILE, dir_path, DEFAULT_NAME);
+        asprintf(&filepath, DATA_FILE, dir_path, DEFAULT_NAME);
     }
 
     // Create data directory if not existent
@@ -101,6 +101,7 @@ int main(int argc, char** argv) {
     // Initialize TPM
     if(TPM_InitContext())
         ExitFailure();
+
     // If no TPM key exists, create a new one
     if(!UuidExists()) {
         print_info("No TPM key present.\nCreating new TPM key.\n");
@@ -135,7 +136,7 @@ int main(int argc, char** argv) {
         else {
             print_info("Using existent AES key.\n");
             int key_length;
-            if(TPM_UnbindAESKey((BYTE**)&key, &key_length))
+            if(TPM_UnbindAESKey((BYTE**)&key, &key_length, keypath))
                 ExitFailure();
             if (key_length != KEY_SIZE) {
                 printf("Error. The encryption key on the hard drive has the wrong size.\n");

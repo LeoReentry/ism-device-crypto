@@ -21,6 +21,7 @@ int UuidExists(void) {
     TSS_RESULT result;
     TSS_UUID uuid = KEY_UUID;
     result = Tspi_Context_LoadKeyByUUID(hContext, TSS_PS_TYPE_SYSTEM, uuid, &hKey);
+    Tspi_Key_UnloadKey(hKey);
     Tspi_Context_CloseObject(hContext, hKey);
 
     return result == TSS_SUCCESS;
@@ -255,7 +256,7 @@ int TPM_BindAESKey(BYTE *key, UINT32 key_size, char* filepath) {
     return 0;
 
 }
-int TPM_UnbindAESKey(BYTE **key, int *length) {
+int TPM_UnbindAESKey(BYTE **key, int *length, char *keypath) {
     // TPM variables
     TSS_HKEY hBindKey = 0;
     TSS_UUID BindKey_UUID = KEY_UUID;
@@ -271,7 +272,7 @@ int TPM_UnbindAESKey(BYTE **key, int *length) {
     print_info("Reading AES key from file... ");
     fflush(stdout);
     // Read encrypted data from file
-    fin = fopen(KEYPATH, "r");
+    fin = fopen(keypath, "r");
     fseek(fin, 0, SEEK_END);
     encKeyLength = (uint32_t)ftell(fin);
     fseek(fin, 0, SEEK_SET);
