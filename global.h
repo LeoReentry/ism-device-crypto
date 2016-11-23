@@ -15,6 +15,8 @@
 #include <trousers/trousers.h>
 #include <sys/stat.h>
 
+#define KEYFILE "/home/leo/Documents/master/data/%s.key"
+#define DATAFILE "/home/leo/Documents/master/data/%s.f"
 #define KEYPATH "/home/leo/Documents/master/key"
 #define FILEPATH "/home/leo/Documents/master/connectionstring"
 #define KEY_UUID {0,0,0,0,0,{0,0,0,2,10}}

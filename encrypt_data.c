@@ -9,6 +9,14 @@
 #include <openssl/err.h>
 #include <openssl/rand.h>
 
+#define HELP_STRING     "\n\nThis program encrypts data using AES-256 in CBC mode. The encryption key is the key created using create_key. "\
+                        "It will be unbound by the TPM for the time of the encryption and then be bound again.\n\n" \
+                        "Usage:\n"\
+                        "\tencrypt_data -v data\n" \
+                        "\t\t-h\tHelp. Displays this help.\n" \
+                        "\t\t-v\tVerbose. Displays information during the process.\n" \
+                        "\tThe data must be passed as command line argument.\n"
+
 /// Decrypts AES key from file to memory.
 /// \param key Buffer in which key is written. Memory allocated by function.
 /// \param length Length of key. Is set by function.
@@ -35,17 +43,21 @@ int main(int argc, char** argv) {
     // Command line switches
     int opt;
     // Check switches
-    while(((opt = getopt(argc, argv, "hv")) != -1)) {
+    while(((opt = getopt(argc, argv, "hk:v")) != -1)) {
         switch (opt) {
             // Switch -h for help
             case 'h':
-                printf("\n\nThis program encrypts data using AES-256 in CBC mode. The encryption key is the key created using create_key. "\
-                       "It will be unbound by the TPM for the time of the encryption and then be bound again.\n\n" \
-                       "Usage:\n\tencrypt_data -v data\n" \
-                       "\t\t-h\tHelp. Displays this help.\n" \
-                       "\t\t-v\tVerbose. Displays information during the process.\n" \
-                       "\tThe data must be passed as last command line argument.\n");
+                printf(HELP_STRING);
                 exit(EXIT_SUCCESS);
+            // Switch -k for help
+            case 'k':
+                printf("Encrypting data with key %s\n", optarg);
+                char* keypath = malloc(strlen(KEYPATH) + strlen(optarg) );
+                sprintf(keypath, KEYFILE, optarg);
+                if (!fileExists(keypath)) {
+                    printf("Error. Key does not exist. Please call create_key first and create a key with the name.\n");
+                    exit(EXIT_FAILURE);
+                }
             // Switch -v for verbose
             case 'v':
                 verbose = 1;
@@ -56,7 +68,7 @@ int main(int argc, char** argv) {
 
     // Check that we have an additional argument
     if (!(argc-optind)){
-        printf("Please pass the data to be encrypted as a string.");
+        printf(HELP_STRING);
         exit(EXIT_FAILURE);
     }
 
