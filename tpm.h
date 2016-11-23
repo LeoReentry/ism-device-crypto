@@ -15,6 +15,18 @@
 /// \retval 0 for success
 /// \retval 1 for failure
 int TPM_InitContext(void);
+/// Creates a new TPM key.
+/// \return integer
+/// \retval 0 for success
+/// \retval 1 for failure
+int TPM_CreateKey(void);
+/// Binds the AES key to the TPM.
+/// \param key Pointer to the key to bind.
+/// \param key_size Size of key in bytes.
+/// \return integer
+/// \retval 0 for success
+/// \retval 1 for failure
+int BindAESKey(BYTE* key, UINT32 key_size);
 /// \brief Closes the handles opened before.
 /// \return void
 void TPM_CloseContext(void);
