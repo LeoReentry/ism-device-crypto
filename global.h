@@ -19,7 +19,6 @@
 #define DATAFILE "~/.deh/%s.f"
 #define PATH "~/.deh/"
 
-#define DATAFILE "/home/leo/Documents/master/data/%s.f"
 #define KEYPATH "/home/leo/Documents/master/key"
 #define FILEPATH "/home/leo/Documents/master/connectionstring"
 #define KEY_UUID {0,0,0,0,0,{0,0,0,2,10}}
@@ -52,6 +51,7 @@ void print_info(char* str);
 void handleErrors(void);
 
 // GLOBAL VARIABLES
+const char* HELP_STRING;
 int verbose;
 TSS_HCONTEXT hContext;
 TSS_HTPM hTPM;
