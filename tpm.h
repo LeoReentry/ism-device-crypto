@@ -27,6 +27,13 @@ int TPM_CreateKey(void);
 /// \retval 0 for success
 /// \retval 1 for failure
 int BindAESKey(BYTE* key, UINT32 key_size);
+/// Decrypts AES key from file to memory.
+/// \param key Buffer in which key is written. Memory allocated by function.
+/// \param length Length of key. Is set by function.
+/// \return integer
+/// \retval 0 for success
+/// \retval 1 for failure
+int UnbindAESKey(BYTE** key, int* length);
 /// \brief Closes the handles opened before.
 /// \return void
 void TPM_CloseContext(void);
