@@ -187,7 +187,7 @@ int BindAESKey(BYTE* key, UINT32 key_size) {
     FILE *f;
     UINT32 boundDataLength;
     BYTE *boundData;
-    printf("Bind AES key to TPM... ");
+    print_info("Bind AES key to TPM... ");
     fflush(stdout);
     // Get reference to key
     result = Tspi_Context_GetKeyByUUID(hContext, TSS_PS_TYPE_SYSTEM, BindKey_UUID, &hBindKey);
@@ -237,7 +237,7 @@ int BindAESKey(BYTE* key, UINT32 key_size) {
         printf("Error during data binding: Unload key. Error 0x%08x:%s\n", result, Trspi_Error_String(result));
         return 1;
     }
-    printf("Success.\n");
+    print_info("Success.\n");
     // If program was successful, clear AES key from memory. If it was unsuccessful, this isn't necessary, since the key will not be used
     memset(key, 0, key_size);
     Tspi_Context_CloseObject(hContext, hEncData);
