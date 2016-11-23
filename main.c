@@ -9,8 +9,8 @@
 void check_switches(int es);
 
 int main(int argc, char** argv) {
-    // Variable to check exclusive switches
-    int exclusive_switch = 0;
+    // Variable to check exclusive switches and one to check whether user has set a name for the key
+    int exclusive_switch = 0, name = 0;
     // Path to keyfile and datafile
     char *keypath, *filepath;
     // Program behaviour
@@ -56,8 +56,10 @@ int main(int argc, char** argv) {
                 print_info(optarg);
                 print_info(".\n");
                 // Get path to key file and data file
-                asprintf(&keypath, KEY_FILE, dir_path, optarg);
-                asprintf(&filepath, DATA_FILE, dir_path, optarg);
+                asprintf(&keypath, KEY_FILE, dir_path, DEFAULT_NAME);
+                asprintf(&filepath, DATA_FILE, dir_path, DEFAULT_NAME);
+                // Define that name is set by user
+                name = 1;
                 break;
             // Switch -r for renewing a key
             case 'r':
@@ -74,9 +76,13 @@ int main(int argc, char** argv) {
         }
     }
     // Program defaults to encryption mode
-    if (!exclusive_switch) {
+    if (!exclusive_switch)
         encryption = 1;
+    if (!name) {
+        asprintf(&keypath, KEY_FILE, dir_path, optarg);
+        asprintf(&filepath, DATA_FILE, dir_path, optarg);
     }
+
 
     printf("Opening directory.\n");
     // Create data directory if not existent
