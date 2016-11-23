@@ -23,7 +23,10 @@ int UuidExists(void) {
     result = Tspi_Context_LoadKeyByUUID(hContext, TSS_PS_TYPE_SYSTEM, uuid, &hKey);
     Tspi_Key_UnloadKey(hKey);
     Tspi_Context_CloseObject(hContext, hKey);
-
+    if (result == 0x00000803) {
+        printf("Tpm is defending against dictionary attacks.\n");
+        ExitFailure();
+    }
     return result == TSS_SUCCESS;
 }
 
@@ -156,7 +159,7 @@ int TPM_CreateKey(void) {
         return 1;
     }
 
-    printf("Creating new key. This could take a while... ");
+    print_info("Creating new key. This could take a while... ");
     fflush(stdout);
     // Create new key in TPM
     result = Tspi_Key_CreateKey(hBindKey, hSRK, 0);
@@ -165,10 +168,10 @@ int TPM_CreateKey(void) {
         printf("Error during Key creation: Create key. Error 0x%08x:%s\n", result, Trspi_Error_String(result));
         return 1;
     }
-    printf("Success.\n");
+    print_info("Success.\n");
 
     // Register that key with UUID
-    printf("Registering key blob for later retrieval... " );
+    print_info("Registering key blob for later retrieval... " );
     fflush(stdout);
     result = Tspi_Context_RegisterKey(hContext, hBindKey, TSS_PS_TYPE_SYSTEM, BindKey_UUID, TSS_PS_TYPE_SYSTEM, SRK_UUID);
     if(result != TSS_SUCCESS) {
@@ -176,7 +179,7 @@ int TPM_CreateKey(void) {
         printf("Error during Key creation: Register key. Error 0x%08x:%s\n", result, Trspi_Error_String(result));
         return 1;
     }
-    printf("Success.\n");
+    print_info("Success.\n");
 
     // Flush the secret
     result = Tspi_Policy_FlushSecret(hKeyPolicy);

@@ -151,6 +151,30 @@ int main(int argc, char** argv) {
         memset(key, 0, sizeof key);
     }
     else if (decryption) {
+        // First, check that both key and data are present
+        if (!fileExists(filepath) || !fileExists(keypath)) {
+            printf("Either the key or the encrypted file is missing. Aborting...\n");
+            ExitFailure();
+        }
+        // Ok, everything is good. Now, load the key
+        BYTE* key;
+        int key_length;
+        if(TPM_UnbindAESKey(&key, &key_length, keypath))
+            ExitFailure();
+        char *plaintext;
+        int plaintext_length;
+        // We've got the key, let's decrypt our data
+        if (AES_DecryptData(&plaintext, key, filepath, &plaintext_length)) {
+            memset(key, 0, KEY_SIZE);
+            free(key);
+            free(plaintext);
+            ExitFailure();
+        }
+        printf("%d\n", plaintext_length);
+        printf("%s\n", plaintext);
+        // Override key
+        memset(key, 0, KEY_SIZE);
+        free(plaintext);
 
     }
     else if (renew_key) {

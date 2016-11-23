@@ -74,6 +74,7 @@ int AES_EncryptData(unsigned char* plaintext, unsigned char* key, char* filepath
 
     // If data isn't as long as we calculated, something went wrong
     if (check_len != ciphertext_len) {
+        memset(key, 0, KEY_SIZE);
         printf("Encryption error.\n");
         EVP_cleanup();
         ERR_free_strings();
@@ -90,6 +91,49 @@ int AES_EncryptData(unsigned char* plaintext, unsigned char* key, char* filepath
     EVP_cleanup();
     ERR_free_strings();
     free(ciphertext);
+    return 0;
+}
+int AES_DecryptData(unsigned char** plaintext, unsigned char* key, char* filepath, int* length) {
+    // Init openSSL library
+    ERR_load_crypto_strings();
+    OpenSSL_add_all_algorithms();
+    OPENSSL_config(NULL);
+
+    print_info("Reading data from file...");
+    fflush(stdout);
+    // Get data
+    unsigned char iv[16];
+    int data_len;
+    char* data;
+    // Read IV and encrypted data from file
+    FILE* fin = fopen(filepath, "r");
+    fseek(fin, 0, SEEK_END);
+    data_len = (int)ftell(fin) - sizeof iv;
+    fseek(fin, 0, SEEK_SET);
+    data = malloc(data_len * sizeof(char));
+    if (data) {
+        fread (iv, 1, sizeof iv, fin);
+        fread (data, 1, data_len, fin);
+    }
+    else {
+        memset(key, 0, KEY_SIZE);
+        EVP_cleanup();
+        ERR_free_strings();
+        free(data);
+        return 1;
+    }
+    fclose(fin);
+    print_info("Done.\n");
+    *plaintext = malloc(data_len * sizeof(unsigned char));
+    // Decrypt data
+    int plaintext_len = decrypt((unsigned char*)data, data_len, key, iv, *plaintext);
+    // Override key
+    memset(key, 0, KEY_SIZE);
+    // Add null terminator
+    (*plaintext)[plaintext_len] = '\0';
+    *length = plaintext_len;
+    EVP_cleanup();
+    ERR_free_strings();
     return 0;
 }
 
