@@ -29,14 +29,14 @@ int TPM_CreateKey(void);
 /// \return integer
 /// \retval 0 for success
 /// \retval 1 for failure
-int BindAESKey(BYTE* key, UINT32 key_size);
+int TPM_BindAESKey(BYTE *key, UINT32 key_size, char *filepath);
 /// Decrypts AES key from file to memory.
 /// \param key Buffer in which key is written. Memory allocated by function.
 /// \param length Length of key. Is set by function.
 /// \return integer
 /// \retval 0 for success
 /// \retval 1 for failure
-int UnbindAESKey(BYTE** key, int* length);
+int TPM_UnbindAESKey(BYTE **key, int *length);
 /// \brief Closes the handles opened before.
 /// \return void
 void TPM_CloseContext(void);

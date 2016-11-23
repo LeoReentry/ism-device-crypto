@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
     if (CreateAESKey())
         ExitFailure();
     // Bind AES key
-    if (BindAESKey((BYTE*)key, 32))
+    if (TPM_BindAESKey((BYTE *) key, 32))
         ExitFailure();
     // Close all open TPM handles
     TPM_CloseContext();

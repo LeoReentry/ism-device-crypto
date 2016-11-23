@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
     // GET AES key
     BYTE* key;
     int key_length;
-    if(UnbindAESKey(&key, &key_length))
+    if(TPM_UnbindAESKey(&key, &key_length))
         ExitFailure();
 
     // Encrypt data

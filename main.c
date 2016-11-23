@@ -5,6 +5,7 @@
 #include <errno.h>
 #include "global.h"
 #include "tpm.h"
+#include "aes.h"
 
 /// Checks if exclusive switches have been set correctly
 void check_switches(int es);
@@ -13,7 +14,7 @@ int main(int argc, char** argv) {
     // Variable to check exclusive switches and one to check whether user has set a name for the key
     int exclusive_switch = 0, name = 0;
     // Path to keyfile and datafile
-    char *keypath, *filepath;
+    char *keypath = NULL, *filepath = NULL;
     // Program behaviour
     int encryption = 0, decryption = 0, create_key = 0, renew_key = 0;
     // Directories
@@ -102,11 +103,10 @@ int main(int argc, char** argv) {
         ExitFailure();
     // If no TPM key exists, create a new one
     if(!UuidExists()) {
-        print_info("No TPM key present. Creating new one... ");
+        print_info("No TPM key present.\nCreating new TPM key.\n");
         fflush(stdout);
         if (TPM_CreateKey())
             ExitFailure();
-        print_info("Success\n");
     }
 
 
@@ -114,7 +114,40 @@ int main(int argc, char** argv) {
     // Check the type of operation we'll have to do (only one is possible)
     // AKA this is how a shitty state machine looks like
     if (encryption) {
-
+        // Check that we have an additional argument
+        if (!(argc-optind)){
+            printf(HELP_STRING);
+            exit(EXIT_FAILURE);
+        }
+        // Key
+        unsigned char key[KEY_SIZE];
+        // If no key file exists, create a new one
+        if (!fileExists(keypath)) {
+            // Create new AES key
+            if (AES_CreateKey(key))
+                ExitFailure();
+            // Bind this key to TPM
+            // This will save the encrypted key to the hard drive
+            if (TPM_BindAESKey((BYTE *) key, KEY_SIZE, keypath))
+                ExitFailure();
+        }
+        // If the file already exists, just unbind the key and we can use it
+        else {
+            print_info("Using existent AES key.\n");
+            int key_length;
+            if(TPM_UnbindAESKey((BYTE**)&key, &key_length))
+                ExitFailure();
+            if (key_length != KEY_SIZE) {
+                printf("Error. The encryption key on the hard drive has the wrong size.\n");
+                ExitFailure();
+            }
+        }
+        // We have the key, now we can encrypt our data
+        char *data = argv[optind];
+        // Encrypt data and save to file
+        AES_EncryptData((unsigned char*)data, key, filepath);
+        // Clear key from memory
+        memset(key, 0, sizeof key);
     }
     else if (decryption) {
 

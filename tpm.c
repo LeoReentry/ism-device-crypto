@@ -194,7 +194,7 @@ int TPM_CreateKey(void) {
     Tspi_Context_CloseObject(hContext, hBindKey);
     return 0;
 }
-int BindAESKey(BYTE* key, UINT32 key_size) {
+int TPM_BindAESKey(BYTE *key, UINT32 key_size, char* filepath) {
     // TPM variables
     TSS_UUID BindKey_UUID = KEY_UUID;
     TSS_HKEY hBindKey;
@@ -243,7 +243,7 @@ int BindAESKey(BYTE* key, UINT32 key_size) {
     }
 
     // Write encrypted data to file
-    f = fopen(KEYPATH, "wb");
+    f = fopen(filepath, "wb");
     write(fileno(f), boundData, boundDataLength);
     fclose(f);
 
@@ -254,14 +254,12 @@ int BindAESKey(BYTE* key, UINT32 key_size) {
         return 1;
     }
     print_info("Success.\n");
-    // If program was successful, clear AES key from memory. If it was unsuccessful, this isn't necessary, since the key will not be used
-    memset(key, 0, key_size);
     Tspi_Context_CloseObject(hContext, hEncData);
     Tspi_Context_CloseObject(hContext, hBindKey);
     return 0;
 
 }
-int UnbindAESKey(BYTE** key, int* length) {
+int TPM_UnbindAESKey(BYTE **key, int *length) {
     // TPM variables
     TSS_HKEY hBindKey = 0;
     TSS_UUID BindKey_UUID = KEY_UUID;
