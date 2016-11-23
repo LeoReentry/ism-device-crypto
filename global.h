@@ -17,10 +17,11 @@
 
 #define KEYFILE "~/.deh/%s.k"
 #define DATAFILE "~/.deh/%s.f"
+#define PATHLENGTH 9
 #define PATH "~/.deh/"
 
 #define KEYPATH "/home/leo/Documents/master/key"
-#define FILEPATH "/home/leo/Documents/master/connectionstring"
+//#define FILEPATH "/home/leo/Documents/master/connectionstring"
 #define KEY_UUID {0,0,0,0,0,{0,0,0,2,10}}
 #define KEY_SIZE 32 // 256 / 8
 

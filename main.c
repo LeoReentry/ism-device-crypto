@@ -1,18 +1,17 @@
-//
-// Created by leo on 11/23/16.
-//
-
+#include <stdio.h>
 #include "global.h"
 #include <unistd.h>
 
-// variables for switches to make sure only one of these has been set
-int s_c = 0, s_d = 0, s_e = 0, s_r = 0;
-/// Checks if switches have been set correctly
-void check_switches(void);
+/// Checks if exclusive switches have been set correctly
+void check_switches(int es);
 
 int main(int argc, char** argv) {
-    // path to keyfile and datafile
-    char* keypath, filepath;
+    // Variable to check exclusive switches
+    int exclusive_switch = 0;
+    // Path to keyfile and datafile
+    char *keypath, *filepath;
+    // Program behaviour
+    int encryption = 0, decryption = 0, create_key = 0, renew_key = 0;
 
     // Command line switches
     int opt;
@@ -21,38 +20,41 @@ int main(int argc, char** argv) {
         switch (opt) {
             // Switch -c for creating new key
             case 'c':
-                check_switches();
-                s_c = 1;
+                check_switches(exclusive_switch);
+                exclusive_switch = 1;
+                create_key = 1;
                 break;
             // Switch -d for decryption
             case 'd':
-                check_switches();
-                s_d = 1;
+                check_switches(exclusive_switch);
+                exclusive_switch = 1;
+                decryption = 1;
                 break;
             // Switch -e for encryption
             case 'e':
-                check_switches();
-                s_e = 1;
+                check_switches(exclusive_switch);
+                exclusive_switch = 1;
+                encryption = 1;
                 break;
             // Switch -h for help
             case 'h':
                 printf(HELP_STRING);
                 exit(EXIT_SUCCESS);
-                // Switch -k for help
+            // Switch -k for help
             case 'n':
-                printf("Encrypting data with key %s\n", optarg);
-                char* keypath = malloc(strlen(KEYPATH) + strlen(optarg) );
+                print_info("Using name ");
+                print_info(optarg);
+                print_info(".\n");
+                keypath = malloc(PATHLENGTH + strlen(optarg));
                 sprintf(keypath, KEYFILE, optarg);
-                if (!fileExists(keypath)) {
-                    printf("Error. Key does not exist. Please call create_key first and create a key with the name.\n");
-                    exit(EXIT_FAILURE);
-                }
+                filepath = malloc(PATHLENGTH + strlen(optarg));
+                sprintf(filepath, DATAFILE, optarg);
                 break;
             // Switch -r for renewing a key
             case 'r':
-                check_switches();
-                s_r = 1;
-                verbose = 1;
+                check_switches(exclusive_switch);
+                exclusive_switch = 1;
+                renew_key = 1;
                 break;
             // Switch -v for verbose
             case 'v':
@@ -62,10 +64,15 @@ int main(int argc, char** argv) {
                 break;
         }
     }
+
+    // Program defaults to encryption mode
+    if (!exclusive_switch) {
+        encryption = 1;
+    }
 }
 
-void check_switches(void) {
-    if (s_c || s_d || s_e || s_r) {
+void check_switches(int es) {
+    if (es) {
         printf("Error. Please use only one of -c -d -e -r.\n");
         exit(EXIT_FAILURE);
     }
