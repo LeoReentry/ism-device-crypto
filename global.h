@@ -15,7 +15,10 @@
 #include <trousers/trousers.h>
 #include <sys/stat.h>
 
-#define KEYFILE "/home/leo/Documents/master/data/%s.key"
+#define KEYFILE "~/.deh/%s.k"
+#define DATAFILE "~/.deh/%s.f"
+#define PATH "~/.deh/"
+
 #define DATAFILE "/home/leo/Documents/master/data/%s.f"
 #define KEYPATH "/home/leo/Documents/master/key"
 #define FILEPATH "/home/leo/Documents/master/connectionstring"
