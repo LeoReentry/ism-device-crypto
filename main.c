@@ -102,14 +102,6 @@ int main(int argc, char** argv) {
     if(TPM_InitContext())
         ExitFailure();
 
-    // If no TPM key exists, create a new one
-    if(!UuidExists()) {
-        print_info("No TPM key present.\nCreating new TPM key.\n");
-        fflush(stdout);
-        if (TPM_CreateKey())
-            ExitFailure();
-    }
-
 
     // Ok, we're done, now we can finally do stuff
     // Check the type of operation we'll have to do (only one is possible)
@@ -119,6 +111,13 @@ int main(int argc, char** argv) {
         if (!(argc-optind)){
             printf(HELP_STRING);
             exit(EXIT_FAILURE);
+        }
+        // If no TPM key exists, create a new one
+        if(!UuidExists()) {
+            print_info("No TPM key present.\nCreating new TPM key.\n");
+            fflush(stdout);
+            if (TPM_CreateKey())
+                ExitFailure();
         }
         // Key
         unsigned char key[KEY_SIZE];
@@ -149,12 +148,20 @@ int main(int argc, char** argv) {
         AES_EncryptData((unsigned char*)data, key, filepath);
         // Clear key from memory
         memset(key, 0, sizeof key);
+        memset(data, 0, strlen(data));
     }
     else if (decryption) {
         // First, check that both key and data are present
         if (!fileExists(filepath) || !fileExists(keypath)) {
             printf("Either the key or the encrypted file is missing. Aborting...\n");
             ExitFailure();
+        }
+        // If no TPM key exists, create a new one
+        if(!UuidExists()) {
+            print_info("No TPM key present.\nCreating new TPM key.\n");
+            fflush(stdout);
+            if (TPM_CreateKey())
+                ExitFailure();
         }
         // Ok, everything is good. Now, load the key
         BYTE* key;
@@ -170,10 +177,10 @@ int main(int argc, char** argv) {
             free(plaintext);
             ExitFailure();
         }
-        printf("%d\n", plaintext_length);
         printf("%s\n", plaintext);
         // Override key
         memset(key, 0, KEY_SIZE);
+        memset(plaintext, 0, plaintext_length);
         free(plaintext);
 
     }
