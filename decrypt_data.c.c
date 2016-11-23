@@ -8,6 +8,7 @@
 #include <openssl/evp.h>
 #include <openssl/err.h>
 #include <openssl/rand.h>
+#include "tpm.h"
 
 /// Decrypts AES key from file to memory.
 /// \param key Buffer in which key is written. Memory allocated by function.
@@ -31,7 +32,7 @@ int main(int argc, char** argv) {
         printf("Error. Couldn't find key file. Please make sure your encryption key is present.\n");
         exit(EXIT_FAILURE);
     }
-    if (!fileExists(FILEPATH)) {
+    if (!fileExists("/home/leo/Documents/master/connectionstring")) {
         printf("Error. Couldn't find the encrypted file. Please make sure your encrypted data is present.\n");
         exit(EXIT_FAILURE);
     }
@@ -70,7 +71,7 @@ int main(int argc, char** argv) {
     int data_len;
     char* data;
     // Read IV and encrypted data from file
-    FILE* fin = fopen(FILEPATH, "r");
+    FILE* fin = fopen("/home/leo/Documents/master/connectionstring", "r");
     fseek(fin, 0, SEEK_END);
     data_len = (int)ftell(fin) - sizeof iv;
     fseek(fin, 0, SEEK_SET);

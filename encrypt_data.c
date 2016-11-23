@@ -3,6 +3,7 @@
 //
 
 #include "global.h"
+#include "tpm.h"
 #include <unistd.h>
 #include <openssl/conf.h>
 #include <openssl/evp.h>
@@ -127,7 +128,7 @@ int main(int argc, char** argv) {
     print_info("Success.\n");
 
     // Ok, now we can save the encrypted data + IV to file
-    FILE* fout = fopen(FILEPATH, "wb");
+    FILE* fout = fopen("/home/leo/Documents/master/connectionstring", "wb");
     write(fileno(fout), iv, sizeof iv);
     write(fileno(fout), ciphertext, ciphertext_len);
     fclose(fout);

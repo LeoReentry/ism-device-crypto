@@ -2,6 +2,7 @@
  * This program will create a TPM key. Then it will create an AES-256 key and bind it with the TPM.
  */
 #include "global.h"
+#include "tpm.h"
 #include <unistd.h>
 #include <openssl/rand.h>
 #include <openssl/err.h>
@@ -48,7 +49,7 @@ int main(int argc, char **argv) {
     if (CreateAESKey())
         ExitFailure();
     // Bind AES key
-    if (BindAESKey())
+    if (BindAESKey((BYTE*)key, 32))
         ExitFailure();
     // Close all open TPM handles
     TPM_CloseContext();
