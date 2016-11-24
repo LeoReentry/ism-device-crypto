@@ -143,6 +143,69 @@ int main(int argc, char** argv) {
             ExitFailure();
         }
 
+        // Decrypt data
+        char* plaintext;
+        int plaintext_length;
+        print_info("Decrypting data.\n");
+        decrypt_data(filepath, keypath, (unsigned char**)&plaintext, &plaintext_length);
+        print_info("Data decrypted.\n");
+
+        // Now backup old data in case something goes wrong
+        int len = (strlen(filepath) + strlen(".tmp")) * sizeof(char);
+        char* backupfile = malloc(len + 1);
+        strncpy(backupfile, filepath, strlen(filepath));
+        strncat(backupfile, ".tmp", 4);
+        char* backupkey= malloc(len + 1);
+        strncpy(backupkey, keypath, strlen(filepath));
+        strncat(backupkey, ".tmp", 4);
+        rename(filepath, backupfile);
+        rename(keypath, backupkey);
+
+        // Create new AES key
+        unsigned char key[KEY_SIZE];
+        if (AES_CreateKey(key))
+            ExitFailure();
+        print_info("Start data reencryption.\n");
+        // Encrypt data and save to file
+        if(AES_EncryptData((unsigned char*)plaintext, key, filepath)) {
+            // Move backup files back
+            rename(backupfile, filepath);
+            rename(backupkey, keypath);
+            free(backupfile);
+            free(backupkey);
+            // Overwrite key and plaintext with 0 in memory
+            memset(key, 0, sizeof key);
+            memset(plaintext, 0, strlen(plaintext));
+            free(plaintext);
+            // Close TPM Context and exit
+            ExitFailure();
+        }
+        // Restart TPM context
+        TPM_CloseContext();
+        TPM_InitContext();
+        // Bind this key to TPM
+        // This will save the encrypted key to the hard drive
+        if (TPM_BindAESKey((BYTE *) key, KEY_SIZE, keypath)) {
+            // Move backup files back
+            rename(backupfile, filepath);
+            rename(backupkey, keypath);
+            free(backupfile);
+            free(backupkey);
+            // Overwrite key and plaintext with 0 in memory
+            memset(key, 0, sizeof key);
+            memset(plaintext, 0, strlen(plaintext));
+            free(plaintext);
+            ExitFailure();
+        }
+        // Delete backup files
+        remove(backupfile);
+        remove(backupkey);
+        free(backupfile);
+        free(backupkey);
+        // Overwrite key and plaintext with 0 in memory
+        memset(key, 0, sizeof key);
+        memset(plaintext, 0, strlen(plaintext));
+        free(plaintext);
     }
     else if (create_key) {
 
@@ -182,14 +245,21 @@ void encrypt_data(char *filepath, char *keypath, unsigned char *data)
         if (TPM_BindAESKey((BYTE *) key, KEY_SIZE, keypath))
             ExitFailure();
     }
-        // If the file already exists, just unbind the key and we can use it
+    // If the file already exists, just unbind the key and we can use it
     else {
         print_info("Using existent AES key.\n");
         int key_length;
-        if(TPM_UnbindAESKey((BYTE**)&key, &key_length, keypath))
+        if(TPM_UnbindAESKey((BYTE**)&key, &key_length, keypath)) {
+            // Overwrite key and plaintext with 0 in memory
+            memset(key, 0, sizeof key);
+            memset(data, 0, strlen((char*)data));
             ExitFailure();
+        }
         if (key_length != KEY_SIZE) {
             printf("Error. The encryption key on the hard drive has the wrong size.\n");
+            // Overwrite key and plaintext with 0 in memory
+            memset(key, 0, sizeof key);
+            memset(data, 0, strlen((char*)data));
             ExitFailure();
         }
     }
