@@ -181,6 +181,7 @@ int main(int argc, char** argv) {
             ExitFailure();
         }
         // Restart TPM context
+        // This forces the TPM to reload the Storage Root Key in order to encrypt the AES key
         TPM_CloseContext();
         TPM_InitContext();
         // Bind this key to TPM
@@ -208,7 +209,30 @@ int main(int argc, char** argv) {
         free(plaintext);
     }
     else if (create_key) {
-
+        // Check that both key and file are present
+        if (fileExists(keypath))
+        {
+            printf("A key with that name already exists. If you want to create a new key with the same name, please use "
+            "the switch -r. This will renew the key and reencrypt the associated data if necessary.\n");
+            ExitFailure();
+        }
+        // If no TPM key exists, create a new one
+        if(!UuidExists()) {
+            print_info("No TPM key present.\nCreating new TPM key.\n");
+            if (TPM_CreateKey())
+                ExitFailure();
+        }
+        // Key
+        unsigned char key[KEY_SIZE];
+        // Create new AES key
+        if (AES_CreateKey(key))
+            ExitFailure();
+        // Bind this key to TPM
+        // This will save the encrypted key to the hard drive
+        if (TPM_BindAESKey((BYTE *) key, KEY_SIZE, keypath))
+            ExitFailure();
+        // Remove key from memory
+        memset(key, 0, KEY_SIZE);
     }
 
     TPM_CloseContext();
