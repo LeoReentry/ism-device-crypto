@@ -115,7 +115,6 @@ int main(int argc, char** argv) {
         // If no TPM key exists, create a new one
         if(!UuidExists()) {
             print_info("No TPM key present.\nCreating new TPM key.\n");
-            fflush(stdout);
             if (TPM_CreateKey())
                 ExitFailure();
         }
@@ -146,7 +145,7 @@ int main(int argc, char** argv) {
         char *data = argv[optind];
         // Encrypt data and save to file
         AES_EncryptData((unsigned char*)data, key, filepath);
-        // Clear key from memory
+        // Overwrite key and plaintext with 0 in memory
         memset(key, 0, sizeof key);
         memset(data, 0, strlen(data));
     }
@@ -178,13 +177,27 @@ int main(int argc, char** argv) {
             ExitFailure();
         }
         printf("%s\n", plaintext);
-        // Override key
+        // Overwrite key and plaintext with 0 in memory
         memset(key, 0, KEY_SIZE);
         memset(plaintext, 0, plaintext_length);
+        // Free plaintext, but don't free the key. The memory was allocated by the TPM middleware and will be freed
+        // on TPM_CloseContext()
         free(plaintext);
 
     }
     else if (renew_key) {
+        // Check that both key and file are present
+        if (!fileExists(filepath) || !fileExists(keypath))
+        {
+            printf("No data or key file found. Can't renew key.\n");
+            ExitFailure();
+        }
+        // If no TPM key exists, exit
+        if(!UuidExists())
+        {
+            printf("No TPM key present to unbind encryption key. Can't renew.\n");
+            ExitFailure();
+        }
 
     }
     else if (create_key) {
