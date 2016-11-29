@@ -217,7 +217,6 @@ void encrypt_data(char *filepath, char *keypath, unsigned char *data)
     // Overwrite key and plaintext with 0 in memory
     memset(key, 0, sizeof key);
     memset(data, 0, strlen((char*)data));
-    cleanup();
 }
 void decrypt_data(char *filepath, char *keypath, unsigned char** plaintext, int* plaintext_length)
 {
@@ -253,7 +252,6 @@ void decrypt_data(char *filepath, char *keypath, unsigned char** plaintext, int*
     // Overwrite key with 0, but don't call free()
     // Memory will be released upon calling TPM_CloseContext()
     memset(key, 0, KEY_SIZE);
-    cleanup();
 }
 void cleanup(void)
 {
