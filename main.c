@@ -6,6 +6,7 @@
 #include "global.h"
 #include "tpm.h"
 #include "aes.h"
+#include "crypto.h"
 
 /// Checks if exclusive switches have been set correctly
 void check_switches(int es);
@@ -52,7 +53,7 @@ int main(int argc, char** argv) {
                 break;
             // Switch -h for help
             case 'h':
-                printf(HELP_STRING);
+                printf("%s", HELP_STRING);
                 exit(EXIT_SUCCESS);
             // Switch -k for help
             case 'n':
@@ -111,7 +112,7 @@ int main(int argc, char** argv) {
     if (encryption) {
         // Check that we have an additional argument
         if (!(argc-optind)){
-            printf(HELP_STRING);
+            printf("%s", HELP_STRING);
             exit(EXIT_FAILURE);
         }
         char* data = argv[optind];

@@ -59,7 +59,7 @@ void ExitFailure(void) {
 
 void print_info(char* str) {
     if (verbose) {
-        printf(str);
+        printf("%s", str);
     }
 }
 

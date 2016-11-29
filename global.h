@@ -23,8 +23,6 @@
 // Default name for key when none is given by user
 #define DEFAULT_NAME "default"
 
-#define KEYPATH "/home/leo/Documents/master/key"
-
 // UUID to identify TPM key
 #define KEY_UUID {0,0,0,0,0,{0,0,0,2,10}}
 // Size of AES key in Bytes (256 bits = 32 Byte)
