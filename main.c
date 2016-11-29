@@ -5,21 +5,18 @@
 #include <errno.h>
 #include "global.h"
 #include "tpm.h"
-#include "aes.h"
 #include "crypto.h"
 
 /// Checks if exclusive switches have been set correctly
 void check_switches(int es);
-void encrypt_data(char* filepath, char* keypath, unsigned char* data);
-void decrypt_data(char *filepath, char *keypath, unsigned char** plaintext, int* plaintext_length);
 
 int main(int argc, char** argv) {
     // Variable to check exclusive switches and one to check whether user has set a name for the key
     int exclusive_switch = 0, name = 0;
-    // Path to keyfile and datafile
-    char *keypath = NULL, *filepath = NULL;
+    // Path to keyfile and datafile and name
+    char *keypath = NULL, *filepath = NULL, *keyname = NULL;
     // Program behaviour
-    int encryption = 0, decryption = 0, create_key = 0, renew_key = 0;
+    int encryption = 0, decryption = 0, key_creation = 0, key_renewal = 0;
     // Directories
     // Path to home directory
     char *home_path = getenv ("HOME");
@@ -37,7 +34,7 @@ int main(int argc, char** argv) {
             case 'c':
                 check_switches(exclusive_switch);
                 exclusive_switch = 1;
-                create_key = 1;
+                key_creation = 1;
                 break;
             // Switch -d for decryption
             case 'd':
@@ -65,12 +62,13 @@ int main(int argc, char** argv) {
                 asprintf(&filepath, DATA_FILE, dir_path, optarg);
                 // Define that name is set by user
                 name = 1;
+                keyname = optarg;
                 break;
             // Switch -r for renewing a key
             case 'r':
                 check_switches(exclusive_switch);
                 exclusive_switch = 1;
-                renew_key = 1;
+                key_renewal = 1;
                 break;
             // Switch -v for verbose
             case 'v':
@@ -86,6 +84,8 @@ int main(int argc, char** argv) {
     if (!name) {
         asprintf(&keypath, KEY_FILE, dir_path, DEFAULT_NAME);
         asprintf(&filepath, DATA_FILE, dir_path, DEFAULT_NAME);
+        keyname = malloc(8*sizeof(char));
+        strcpy(keyname, DEFAULT_NAME);
     }
 
     // Create data directory if not existent
@@ -115,14 +115,16 @@ int main(int argc, char** argv) {
             printf("%s", HELP_STRING);
             exit(EXIT_FAILURE);
         }
-        char* data = argv[optind];
         // Encrypt data and store it to file
-        encrypt_data(filepath, keypath, (unsigned char*)data);
+        encrypt_dat(keyname, (unsigned char*) argv[optind]);
+//        char* data = ;
+//        encrypt_data(filepath, keypath, (unsigned char*)data);
     }
     else if (decryption) {
         char* plaintext;
         int plaintext_length;
-        decrypt_data(filepath, keypath, (unsigned char**)&plaintext, &plaintext_length);
+        decrypt_dat(keyname, (unsigned char**)&plaintext, &plaintext_length);
+//        decrypt_data(filepath, keypath, (unsigned char**)&plaintext, &plaintext_length);
         printf("%s\n", plaintext);
         // Overwrite key and plaintext with 0 in memory
         memset(plaintext, 0, (size_t)plaintext_length);
@@ -130,113 +132,15 @@ int main(int argc, char** argv) {
         free(plaintext);
 
     }
-    else if (renew_key) {
-        // Check that both key and file are present
-        if (!fileExists(filepath) || !fileExists(keypath))
-        {
-            printf("No data or key file found. Can't renew key.\n");
-            ExitFailure();
-        }
-        // If no TPM key exists, exit
-        if(!UuidExists())
-        {
-            printf("No TPM key present to unbind encryption key. Can't renew.\n");
-            ExitFailure();
-        }
-
-        // Decrypt data
-        char* plaintext;
-        int plaintext_length;
-        print_info("Decrypting data.\n");
-        decrypt_data(filepath, keypath, (unsigned char**)&plaintext, &plaintext_length);
-        print_info("Data decrypted.\n");
-
-        // Now backup old data in case something goes wrong
-        int len = (strlen(filepath) + strlen(".tmp")) * sizeof(char);
-        char* backupfile = malloc(len + 1);
-        strncpy(backupfile, filepath, strlen(filepath));
-        strncat(backupfile, ".tmp", 4);
-        char* backupkey= malloc(len + 1);
-        strncpy(backupkey, keypath, strlen(filepath));
-        strncat(backupkey, ".tmp", 4);
-        rename(filepath, backupfile);
-        rename(keypath, backupkey);
-
-        // Create new AES key
-        unsigned char key[KEY_SIZE];
-        if (AES_CreateKey(key))
-            ExitFailure();
-        print_info("Start data reencryption.\n");
-        // Encrypt data and save to file
-        if(AES_EncryptData((unsigned char*)plaintext, key, filepath)) {
-            // Move backup files back
-            rename(backupfile, filepath);
-            rename(backupkey, keypath);
-            free(backupfile);
-            free(backupkey);
-            // Overwrite key and plaintext with 0 in memory
-            memset(key, 0, sizeof key);
-            memset(plaintext, 0, strlen(plaintext));
-            free(plaintext);
-            // Close TPM Context and exit
-            ExitFailure();
-        }
-        // Restart TPM context
-        // This forces the TPM to reload the Storage Root Key in order to encrypt the AES key
-        TPM_CloseContext();
-        TPM_InitContext();
-        // Bind this key to TPM
-        // This will save the encrypted key to the hard drive
-        if (TPM_BindAESKey((BYTE *) key, KEY_SIZE, keypath)) {
-            // Move backup files back
-            rename(backupfile, filepath);
-            rename(backupkey, keypath);
-            free(backupfile);
-            free(backupkey);
-            // Overwrite key and plaintext with 0 in memory
-            memset(key, 0, sizeof key);
-            memset(plaintext, 0, strlen(plaintext));
-            free(plaintext);
-            ExitFailure();
-        }
-        // Delete backup files
-        remove(backupfile);
-        remove(backupkey);
-        free(backupfile);
-        free(backupkey);
-        // Overwrite key and plaintext with 0 in memory
-        memset(key, 0, sizeof key);
-        memset(plaintext, 0, strlen(plaintext));
-        free(plaintext);
+    else if (key_renewal) {
+        renew_key(keyname);
     }
-    else if (create_key) {
-        // Check that both key and file are present
-        if (fileExists(keypath))
-        {
-            printf("A key with that name already exists. If you want to create a new key with the same name, please use "
-            "the switch -r. This will renew the key and reencrypt the associated data if necessary.\n");
-            ExitFailure();
-        }
-        // If no TPM key exists, create a new one
-        if(!UuidExists()) {
-            print_info("No TPM key present.\nCreating new TPM key.\n");
-            if (TPM_CreateKey())
-                ExitFailure();
-        }
-        // Key
-        unsigned char key[KEY_SIZE];
-        // Create new AES key
-        if (AES_CreateKey(key))
-            ExitFailure();
-        // Bind this key to TPM
-        // This will save the encrypted key to the hard drive
-        if (TPM_BindAESKey((BYTE *) key, KEY_SIZE, keypath))
-            ExitFailure();
-        // Remove key from memory
-        memset(key, 0, KEY_SIZE);
+    else if (key_creation) {
+        create_key(keyname);
     }
 
     TPM_CloseContext();
+    free(keyname);
     free(dir_path);
     free(keypath);
     free(filepath);
@@ -248,79 +152,4 @@ void check_switches(int es) {
         printf("Error. Please use only one of -c -d -e -r.\n");
         exit(EXIT_FAILURE);
     }
-}
-
-void encrypt_data(char *filepath, char *keypath, unsigned char *data)
-{
-    // If no TPM key exists, create a new one
-    if(!UuidExists()) {
-        print_info("No TPM key present.\nCreating new TPM key.\n");
-        if (TPM_CreateKey())
-            ExitFailure();
-    }
-    // Key
-    unsigned char key[KEY_SIZE];
-    // If no key file exists, create a new one
-    if (!fileExists(keypath)) {
-        // Create new AES key
-        if (AES_CreateKey(key))
-            ExitFailure();
-        // Bind this key to TPM
-        // This will save the encrypted key to the hard drive
-        if (TPM_BindAESKey((BYTE *) key, KEY_SIZE, keypath))
-            ExitFailure();
-    }
-    // If the file already exists, just unbind the key and we can use it
-    else {
-        print_info("Using existent AES key.\n");
-        int key_length;
-        if(TPM_UnbindAESKey((BYTE**)&key, &key_length, keypath)) {
-            // Overwrite key and plaintext with 0 in memory
-            memset(key, 0, sizeof key);
-            memset(data, 0, strlen((char*)data));
-            ExitFailure();
-        }
-        if (key_length != KEY_SIZE) {
-            printf("Error. The encryption key on the hard drive has the wrong size.\n");
-            // Overwrite key and plaintext with 0 in memory
-            memset(key, 0, sizeof key);
-            memset(data, 0, strlen((char*)data));
-            ExitFailure();
-        }
-    }
-    // Encrypt data and save to file
-    AES_EncryptData(data, key, filepath);
-    // Overwrite key and plaintext with 0 in memory
-    memset(key, 0, sizeof key);
-    memset(data, 0, strlen((char*)data));
-}
-
-void decrypt_data(char *filepath, char *keypath, unsigned char** plaintext, int* plaintext_length)
-{
-    // First, check that both key and data are present
-    if (!fileExists(filepath) || !fileExists(keypath)) {
-        printf("Either the key or the encrypted file is missing. Aborting...\n");
-        ExitFailure();
-    }
-    // If no TPM key exists, create a new one
-    if(!UuidExists()) {
-        print_info("No TPM key present.\nCreating new TPM key.\n");
-        fflush(stdout);
-        if (TPM_CreateKey())
-            ExitFailure();
-    }
-    // Ok, everything is good. Now, load the key
-    BYTE* key;
-    int key_length;
-    if(TPM_UnbindAESKey(&key, &key_length, keypath))
-        ExitFailure();
-    // We've got the key, let's decrypt our data
-    if (AES_DecryptData(plaintext, key, filepath, plaintext_length)) {
-        memset(key, 0, KEY_SIZE);
-        free(*plaintext);
-        ExitFailure();
-    }
-    // Overwrite key with 0, but don't call free()
-    // Memory will be released upon calling TPM_CloseContext()
-    memset(key, 0, KEY_SIZE);
 }
