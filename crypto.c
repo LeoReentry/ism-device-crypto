@@ -279,7 +279,7 @@ void init(char *name)
         int stat = mkdir(dirpath, 0777);
         if ( !stat ); // Everything ok.
         else { // Can't create directory
-            printf("Error. Can't create settings directory in path:\n%s\nPlease fix before running this program again.\n", dir_path);
+            printf("Error. Can't create settings directory in path:\n%s\nPlease fix before running this program again.\n", dirpath);
             exit(EXIT_FAILURE);
         }
     }
