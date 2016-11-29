@@ -2,24 +2,55 @@
 // Created by leo on 11/29/16.
 //
 #define _GNU_SOURCE
+
+#include <dirent.h>
+#include <errno.h>
 #include "global.h"
 #include "tpm.h"
 #include "aes.h"
 #include "crypto.h"
 
-void encrypt_data(char* filepath, char* keypath, unsigned char* data);
-void decrypt_data(char *filepath, char *keypath, unsigned char** plaintext, int* plaintext_length);
-
-void renew_key(char *name)
-{
+char *filepath = NULL, *keypath=NULL;
+void init(char *name);
+void cleanup(void);
+void cleanup(void) {
+    TPM_CloseContext();
+    free(filepath);
+    free(keypath);
+}
+void init(char *name) {
     // Get path variables
-    char *keypath, *filepath;
     char *homepath = getenv("HOME");
     char *dirpath;
     asprintf(&dirpath, PATH, homepath);
     // Get path to key file and data file
     asprintf(&keypath, KEY_FILE, dirpath, name);
     asprintf(&filepath, DATA_FILE, dirpath, name);
+
+    // Create data directory if not existent
+    DIR* dir = opendir(dirpath);
+    if (dir) // Directory exists, just close it again
+        closedir(dir);
+    else if(ENOENT == errno) {
+        int stat = mkdir(dirpath, 0777);
+        if ( !stat ); // Everything ok.
+        else { // Can't create directory
+            printf("Error. Can't create settings directory in path:\n%s\nPlease fix before running this program again.\n", dir_path);
+            exit(EXIT_FAILURE);
+        }
+    }
+    free(dirpath);
+    // Initialize TPM
+    if(TPM_InitContext())
+        ExitFailure();
+}
+
+void encrypt_data(char* filepath, char* keypath, unsigned char* data);
+void decrypt_data(char *filepath, char *keypath, unsigned char** plaintext, int* plaintext_length);
+
+void renew_key(char *name)
+{
+    init(name);
 
     // Check that both key and file are present
     if (!fileExists(filepath) || !fileExists(keypath))
@@ -68,6 +99,7 @@ void renew_key(char *name)
         memset(key, 0, sizeof key);
         memset(plaintext, 0, strlen(plaintext));
         free(plaintext);
+        cleanup();
         // Close TPM Context and exit
         ExitFailure();
     }
@@ -87,6 +119,7 @@ void renew_key(char *name)
         memset(key, 0, sizeof key);
         memset(plaintext, 0, strlen(plaintext));
         free(plaintext);
+        cleanup();
         ExitFailure();
     }
     // Delete backup files
@@ -98,18 +131,11 @@ void renew_key(char *name)
     memset(key, 0, sizeof key);
     memset(plaintext, 0, strlen(plaintext));
     free(plaintext);
-
+    cleanup();
 }
 void create_key(char *name)
 {
-    // Get path variables
-    char *keypath, *filepath;
-    char *homepath = getenv("HOME");
-    char *dirpath;
-    asprintf(&dirpath, PATH, homepath);
-    // Get path to key file and data file
-    asprintf(&keypath, KEY_FILE, dirpath, name);
-    asprintf(&filepath, DATA_FILE, dirpath, name);
+    init(name);
 
     // Check that both key and file are present
     if (fileExists(keypath))
@@ -121,49 +147,40 @@ void create_key(char *name)
     // If no TPM key exists, create a new one
     if(!UuidExists()) {
         print_info("No TPM key present.\nCreating new TPM key.\n");
-        if (TPM_CreateKey())
+        if (TPM_CreateKey()) {
+            cleanup();
             ExitFailure();
+        }
     }
     // Key
     unsigned char key[KEY_SIZE];
     // Create new AES key
-    if (AES_CreateKey(key))
+    if (AES_CreateKey(key)) {
+        cleanup();
         ExitFailure();
+    }
     // Bind this key to TPM
     // This will save the encrypted key to the hard drive
-    if (TPM_BindAESKey((BYTE *) key, KEY_SIZE, keypath))
+    if (TPM_BindAESKey((BYTE *) key, KEY_SIZE, keypath)) {
+        cleanup();
         ExitFailure();
+    }
     // Remove key from memory
     memset(key, 0, KEY_SIZE);
+    cleanup();
 }
 void encrypt_dat(char *name, unsigned char *data)
 {
-    // Get path variables
-    char *keypath, *filepath;
-    char *homepath = getenv("HOME");
-    char *dirpath;
-    asprintf(&dirpath, PATH, homepath);
-    // Get path to key file and data file
-    asprintf(&keypath, KEY_FILE, dirpath, name);
-    asprintf(&filepath, DATA_FILE, dirpath, name);
+    init(name);
     encrypt_data(filepath, keypath, data);
+    cleanup();
 
 }
 void decrypt_dat(char *name, unsigned char** plaintext, int* plaintext_length)
 {
-    // Get path variables
-    char *keypath=NULL, *filepath=NULL;
-    char *homepath = getenv("HOME");
-    char *dirpath=NULL;
-    asprintf(&dirpath, PATH, homepath);
-    // Get path to key file and data file
-    asprintf(&keypath, KEY_FILE, dirpath, name);
-    asprintf(&filepath, DATA_FILE, dirpath, name);
+    init(name);
     decrypt_data(filepath, keypath, plaintext, plaintext_length);
-    // Free all other stuff
-    free(keypath);
-    free(filepath);
-    free(dirpath);
+    cleanup();
 }
 
 void encrypt_data(char *filepath, char *keypath, unsigned char *data)
@@ -171,20 +188,26 @@ void encrypt_data(char *filepath, char *keypath, unsigned char *data)
     // If no TPM key exists, create a new one
     if(!UuidExists()) {
         print_info("No TPM key present.\nCreating new TPM key.\n");
-        if (TPM_CreateKey())
+        if (TPM_CreateKey()) {
+            cleanup();
             ExitFailure();
+        }
     }
     // Key
     unsigned char key[KEY_SIZE];
     // If no key file exists, create a new one
     if (!fileExists(keypath)) {
         // Create new AES key
-        if (AES_CreateKey(key))
+        if (AES_CreateKey(key)) {
+            cleanup();
             ExitFailure();
+        }
         // Bind this key to TPM
         // This will save the encrypted key to the hard drive
-        if (TPM_BindAESKey((BYTE *) key, KEY_SIZE, keypath))
+        if (TPM_BindAESKey((BYTE *) key, KEY_SIZE, keypath)) {
+            cleanup();
             ExitFailure();
+        }
     }
         // If the file already exists, just unbind the key and we can use it
     else {
@@ -194,6 +217,7 @@ void encrypt_data(char *filepath, char *keypath, unsigned char *data)
             // Overwrite key and plaintext with 0 in memory
             memset(key, 0, sizeof key);
             memset(data, 0, strlen((char*)data));
+            cleanup();
             ExitFailure();
         }
         if (key_length != KEY_SIZE) {
@@ -201,6 +225,7 @@ void encrypt_data(char *filepath, char *keypath, unsigned char *data)
             // Overwrite key and plaintext with 0 in memory
             memset(key, 0, sizeof key);
             memset(data, 0, strlen((char*)data));
+            cleanup();
             ExitFailure();
         }
     }
@@ -209,6 +234,7 @@ void encrypt_data(char *filepath, char *keypath, unsigned char *data)
     // Overwrite key and plaintext with 0 in memory
     memset(key, 0, sizeof key);
     memset(data, 0, strlen((char*)data));
+    cleanup();
 }
 
 void decrypt_data(char *filepath, char *keypath, unsigned char** plaintext, int* plaintext_length)
@@ -216,28 +242,35 @@ void decrypt_data(char *filepath, char *keypath, unsigned char** plaintext, int*
     // First, check that both key and data are present
     if (!fileExists(filepath) || !fileExists(keypath)) {
         printf("Either the key or the encrypted file is missing. Aborting...\n");
+        cleanup();
         ExitFailure();
     }
     // If no TPM key exists, create a new one
     if(!UuidExists()) {
         print_info("No TPM key present.\nCreating new TPM key.\n");
         fflush(stdout);
-        if (TPM_CreateKey())
+        if (TPM_CreateKey()) {
+            cleanup();
             ExitFailure();
+        }
     }
     // Ok, everything is good. Now, load the key
     BYTE* key;
     int key_length;
-    if(TPM_UnbindAESKey(&key, &key_length, keypath))
+    if(TPM_UnbindAESKey(&key, &key_length, keypath)) {
+        cleanup();
         ExitFailure();
+    }
     // We've got the key, let's decrypt our data
     if (AES_DecryptData(plaintext, key, filepath, plaintext_length)) {
         memset(key, 0, KEY_SIZE);
         free(*plaintext);
+        cleanup();
         ExitFailure();
     }
     // Overwrite key with 0, but don't call free()
     // Memory will be released upon calling TPM_CloseContext()
     memset(key, 0, KEY_SIZE);
+    cleanup();
 }
 
