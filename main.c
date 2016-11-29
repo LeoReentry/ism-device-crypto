@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
     // Variable to check exclusive switches and one to check whether user has set a name for the key
     int exclusive_switch = 0, name = 0;
     // Path to keyfile and datafile and name
-    char *keypath = NULL, *filepath = NULL, *keyname = NULL;
+    char *keyname = NULL;
     // Program behaviour
     int encryption = 0, decryption = 0, key_creation = 0, key_renewal = 0;
     // Directories
@@ -57,11 +57,9 @@ int main(int argc, char** argv) {
                 print_info("Using name ");
                 print_info(optarg);
                 print_info(".\n");
-                // Get path to key file and data file
-                asprintf(&keypath, KEY_FILE, dir_path, optarg);
-                asprintf(&filepath, DATA_FILE, dir_path, optarg);
                 // Define that name is set by user
                 name = 1;
+                // Save name for later use
                 keyname = optarg;
                 break;
             // Switch -r for renewing a key
@@ -81,9 +79,8 @@ int main(int argc, char** argv) {
     // Program defaults to encryption mode
     if (!exclusive_switch)
         encryption = 1;
+    // If name was not defined, use default name
     if (!name) {
-        asprintf(&keypath, KEY_FILE, dir_path, DEFAULT_NAME);
-        asprintf(&filepath, DATA_FILE, dir_path, DEFAULT_NAME);
         keyname = malloc(8*sizeof(char));
         strcpy(keyname, DEFAULT_NAME);
     }
@@ -105,7 +102,6 @@ int main(int argc, char** argv) {
     if(TPM_InitContext())
         ExitFailure();
 
-
     // Ok, we're done, now we can finally do stuff
     // Check the type of operation we'll have to do (only one is possible)
     // AKA this is how a shitty state machine looks like
@@ -117,14 +113,11 @@ int main(int argc, char** argv) {
         }
         // Encrypt data and store it to file
         encrypt_dat(keyname, (unsigned char*) argv[optind]);
-//        char* data = ;
-//        encrypt_data(filepath, keypath, (unsigned char*)data);
     }
     else if (decryption) {
         char* plaintext;
         int plaintext_length;
         decrypt_dat(keyname, (unsigned char**)&plaintext, &plaintext_length);
-//        decrypt_data(filepath, keypath, (unsigned char**)&plaintext, &plaintext_length);
         printf("%s\n", plaintext);
         // Overwrite key and plaintext with 0 in memory
         memset(plaintext, 0, (size_t)plaintext_length);
@@ -140,10 +133,8 @@ int main(int argc, char** argv) {
     }
 
     TPM_CloseContext();
-    free(keyname);
-    free(dir_path);
-    free(keypath);
-    free(filepath);
+    if(!name)
+        free(keyname);
     exit(EXIT_SUCCESS);
 }
 

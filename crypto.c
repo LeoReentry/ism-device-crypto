@@ -6,7 +6,12 @@
 #include "tpm.h"
 #include "aes.h"
 #include "crypto.h"
-void renew_key(char *name) {
+
+void encrypt_data(char* filepath, char* keypath, unsigned char* data);
+void decrypt_data(char *filepath, char *keypath, unsigned char** plaintext, int* plaintext_length);
+
+void renew_key(char *name)
+{
     // Get path variables
     char *keypath, *filepath;
     char *homepath = getenv("HOME");
@@ -95,7 +100,8 @@ void renew_key(char *name) {
     free(plaintext);
 
 }
-void create_key(char *name) {
+void create_key(char *name)
+{
     // Get path variables
     char *keypath, *filepath;
     char *homepath = getenv("HOME");
@@ -130,7 +136,8 @@ void create_key(char *name) {
     // Remove key from memory
     memset(key, 0, KEY_SIZE);
 }
-void encrypt_dat(char *name, unsigned char *data) {
+void encrypt_dat(char *name, unsigned char *data)
+{
     // Get path variables
     char *keypath, *filepath;
     char *homepath = getenv("HOME");
@@ -142,17 +149,23 @@ void encrypt_dat(char *name, unsigned char *data) {
     encrypt_data(filepath, keypath, data);
 
 }
-void decrypt_dat(char *name, unsigned char** plaintext, int* plaintext_length) {
+void decrypt_dat(char *name, unsigned char** plaintext, int* plaintext_length)
+{
     // Get path variables
-    char *keypath, *filepath;
+    char *keypath=NULL, *filepath=NULL;
     char *homepath = getenv("HOME");
-    char *dirpath;
+    char *dirpath=NULL;
     asprintf(&dirpath, PATH, homepath);
     // Get path to key file and data file
     asprintf(&keypath, KEY_FILE, dirpath, name);
     asprintf(&filepath, DATA_FILE, dirpath, name);
     decrypt_data(filepath, keypath, plaintext, plaintext_length);
+    // Free all other stuff
+    free(keypath);
+    free(filepath);
+    free(dirpath);
 }
+
 void encrypt_data(char *filepath, char *keypath, unsigned char *data)
 {
     // If no TPM key exists, create a new one
