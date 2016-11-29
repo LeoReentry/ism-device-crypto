@@ -10,45 +10,28 @@
 #include "aes.h"
 #include "crypto.h"
 
+// Global variables for path to file and key
 char *filepath = NULL, *keypath=NULL;
+/// Initializes TPM context and filepath/keypath
+/// \param name Name that will be used for the data. This is needed for keypath/filepath.
 void init(char *name);
+/// Closes all open TPM handles and frees memory
 void cleanup(void);
-void cleanup(void) {
-    TPM_CloseContext();
-    free(filepath);
-    free(keypath);
-}
-void init(char *name) {
-    // Get path variables
-    char *homepath = getenv("HOME");
-    char *dirpath;
-    asprintf(&dirpath, PATH, homepath);
-    // Get path to key file and data file
-    asprintf(&keypath, KEY_FILE, dirpath, name);
-    asprintf(&filepath, DATA_FILE, dirpath, name);
-
-    // Create data directory if not existent
-    DIR* dir = opendir(dirpath);
-    if (dir) // Directory exists, just close it again
-        closedir(dir);
-    else if(ENOENT == errno) {
-        int stat = mkdir(dirpath, 0777);
-        if ( !stat ); // Everything ok.
-        else { // Can't create directory
-            printf("Error. Can't create settings directory in path:\n%s\nPlease fix before running this program again.\n", dir_path);
-            exit(EXIT_FAILURE);
-        }
-    }
-    free(dirpath);
-    // Initialize TPM
-    if(TPM_InitContext())
-        ExitFailure();
-}
-
+/// Encrypts data using AES-256-CBC and saves it in file. If no key exists, it will be
+/// created and bound to the TPM.
+/// \param filepath Path in which encrypted data will be stored.
+/// \param keypath Path to encrypted key.
+/// \param data Data to be encrypted.
 void encrypt_data(char* filepath, char* keypath, unsigned char* data);
+/// Decrypts data using AES-256 CBC.
+/// \param filepath Path to encrypted data. Will decrypt (unbind) the AES encryption key
+/// using the TPM and then decrypt the data.
+/// \param keypath Path to encrypted data.
+/// \param plaintext Pointer to string. Will be allocated by function and will contain decrypted data.
+/// \param plaintext_length Length of decrypted data. Will be set by function.
 void decrypt_data(char *filepath, char *keypath, unsigned char** plaintext, int* plaintext_length);
 
-void renew_key(char *name)
+void DeviceCrypto_RenewKey(char *name)
 {
     init(name);
 
@@ -133,7 +116,7 @@ void renew_key(char *name)
     free(plaintext);
     cleanup();
 }
-void create_key(char *name)
+void DeviceCrypto_CreateKey(char *name)
 {
     init(name);
 
@@ -169,14 +152,14 @@ void create_key(char *name)
     memset(key, 0, KEY_SIZE);
     cleanup();
 }
-void encrypt_dat(char *name, unsigned char *data)
+void DeviceCrypto_Encrypt(char *name, unsigned char *data)
 {
     init(name);
     encrypt_data(filepath, keypath, data);
     cleanup();
 
 }
-void decrypt_dat(char *name, unsigned char** plaintext, int* plaintext_length)
+void DeviceCrypto_Decrypt(char *name, unsigned char** plaintext, int* plaintext_length)
 {
     init(name);
     decrypt_data(filepath, keypath, plaintext, plaintext_length);
@@ -236,7 +219,6 @@ void encrypt_data(char *filepath, char *keypath, unsigned char *data)
     memset(data, 0, strlen((char*)data));
     cleanup();
 }
-
 void decrypt_data(char *filepath, char *keypath, unsigned char** plaintext, int* plaintext_length)
 {
     // First, check that both key and data are present
@@ -272,5 +254,38 @@ void decrypt_data(char *filepath, char *keypath, unsigned char** plaintext, int*
     // Memory will be released upon calling TPM_CloseContext()
     memset(key, 0, KEY_SIZE);
     cleanup();
+}
+void cleanup(void)
+{
+    TPM_CloseContext();
+    free(filepath);
+    free(keypath);
+}
+void init(char *name)
+{
+    // Get path variables
+    char *homepath = getenv("HOME");
+    char *dirpath;
+    asprintf(&dirpath, PATH, homepath);
+    // Get path to key file and data file
+    asprintf(&keypath, KEY_FILE, dirpath, name);
+    asprintf(&filepath, DATA_FILE, dirpath, name);
+
+    // Create data directory if not existent
+    DIR* dir = opendir(dirpath);
+    if (dir) // Directory exists, just close it again
+        closedir(dir);
+    else if(ENOENT == errno) {
+        int stat = mkdir(dirpath, 0777);
+        if ( !stat ); // Everything ok.
+        else { // Can't create directory
+            printf("Error. Can't create settings directory in path:\n%s\nPlease fix before running this program again.\n", dir_path);
+            exit(EXIT_FAILURE);
+        }
+    }
+    free(dirpath);
+    // Initialize TPM
+    if(TPM_InitContext())
+        ExitFailure();
 }
 

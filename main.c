@@ -1,10 +1,7 @@
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <unistd.h>
-#include <dirent.h>
-#include <errno.h>
 #include "global.h"
-#include "tpm.h"
 #include "crypto.h"
 
 /// Checks if exclusive switches have been set correctly
@@ -95,12 +92,12 @@ int main(int argc, char** argv) {
             exit(EXIT_FAILURE);
         }
         // Encrypt data and store it to file
-        encrypt_dat(name, (unsigned char*) argv[optind]);
+        DeviceCrypto_Encrypt(name, (unsigned char*) argv[optind]);
     }
     else if (decryption) {
         char* plaintext;
         int plaintext_length;
-        decrypt_dat(name, (unsigned char**)&plaintext, &plaintext_length);
+        DeviceCrypto_Decrypt(name, (unsigned char**)&plaintext, &plaintext_length);
         printf("%s\n", plaintext);
         // Overwrite key and plaintext with 0 in memory
         memset(plaintext, 0, (size_t)plaintext_length);
@@ -108,10 +105,10 @@ int main(int argc, char** argv) {
         free(plaintext);
     }
     else if (key_renewal) {
-        renew_key(name);
+        DeviceCrypto_RenewKey(name);
     }
     else if (key_creation) {
-        create_key(name);
+        DeviceCrypto_CreateKey(name);
     }
 
     // If name was not defined, it was allocated manually
