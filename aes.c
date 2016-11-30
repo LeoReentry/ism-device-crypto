@@ -99,7 +99,7 @@ int AES_DecryptData(unsigned char** plaintext, unsigned char* key, char* filepat
     OpenSSL_add_all_algorithms();
     OPENSSL_config(NULL);
 
-    print_info("Reading data from file...");
+    print_info("Reading data from file... ");
     fflush(stdout);
     // Get data
     unsigned char iv[16];
@@ -123,7 +123,7 @@ int AES_DecryptData(unsigned char** plaintext, unsigned char* key, char* filepat
         return 1;
     }
     fclose(fin);
-    print_info("Done.\n");
+    print_info("Success.\n");
     *plaintext = malloc(data_len * sizeof(unsigned char));
     // Decrypt data
     int plaintext_len = decrypt((unsigned char*)data, data_len, key, iv, *plaintext);

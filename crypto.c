@@ -261,6 +261,8 @@ void cleanup(void)
 }
 void init(char *name)
 {
+    print_info("Initializing context... ");
+    fflush(stdout);
     // Get path variables
     char *homepath = getenv("HOME");
     char *dirpath;
@@ -285,5 +287,6 @@ void init(char *name)
     // Initialize TPM
     if(TPM_InitContext())
         ExitFailure();
+    print_info("Success.");
 }
 
