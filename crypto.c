@@ -287,6 +287,6 @@ void init(char *name)
     // Initialize TPM
     if(TPM_InitContext())
         ExitFailure();
-    print_info("Success.");
+    print_info("Success.\n");
 }
 
