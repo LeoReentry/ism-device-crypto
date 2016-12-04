@@ -264,7 +264,7 @@ void init(char *name)
     print_info("Initializing context... ");
     fflush(stdout);
     // Get path variables
-    char *homepath = getenv("HOME");
+    char *homepath = "/home/debian";//getenv("HOME");
     char *dirpath;
     asprintf(&dirpath, PATH, homepath);
     // Get path to key file and data file
