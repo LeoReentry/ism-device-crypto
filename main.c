@@ -14,13 +14,6 @@ int main(int argc, char** argv) {
     char *name = NULL;
     // Program behaviour
     int encryption = 0, decryption = 0, key_creation = 0, key_renewal = 0;
-    // Directories
-    // Path to home directory
-    char *home_path = getenv ("HOME");
-    // Path to directory for settings of this program
-    // Asprintf allocates memory by itself
-    char *dir_path;
-    asprintf(&dir_path, PATH, home_path);
 
     // Command line switches
     int opt;
