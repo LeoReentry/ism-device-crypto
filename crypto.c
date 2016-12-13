@@ -177,9 +177,10 @@ void encrypt_data(char *filepath, char *keypath, unsigned char *data)
         }
     }
     // Key
-    unsigned char key[KEY_SIZE];
+    BYTE* key;
     // If no key file exists, create a new one
     if (!fileExists(keypath)) {
+        key = malloc(KEY_SIZE * sizeof(BYTE));
         // Create new AES key
         if (AES_CreateKey(key)) {
             cleanup();
@@ -187,18 +188,18 @@ void encrypt_data(char *filepath, char *keypath, unsigned char *data)
         }
         // Bind this key to TPM
         // This will save the encrypted key to the hard drive
-        if (TPM_BindAESKey((BYTE *) key, KEY_SIZE, keypath)) {
+        if (TPM_BindAESKey(key, KEY_SIZE, keypath)) {
             cleanup();
             ExitFailure();
         }
     }
-        // If the file already exists, just unbind the key and we can use it
+    // If the file already exists, just unbind the key and we can use it
     else {
         print_info("Using existent AES key.\n");
         int key_length;
-        if(TPM_UnbindAESKey((BYTE**)&key, &key_length, keypath)) {
+        if(TPM_UnbindAESKey(&key, &key_length, keypath)) {
             // Overwrite key and plaintext with 0 in memory
-            memset(key, 0, sizeof key);
+            memset(key, 0, KEY_SIZE);
             memset(data, 0, strlen((char*)data));
             cleanup();
             ExitFailure();
@@ -206,7 +207,7 @@ void encrypt_data(char *filepath, char *keypath, unsigned char *data)
         if (key_length != KEY_SIZE) {
             printf("Error. The encryption key on the hard drive has the wrong size.\n");
             // Overwrite key and plaintext with 0 in memory
-            memset(key, 0, sizeof key);
+            memset(key, 0, KEY_SIZE);
             memset(data, 0, strlen((char*)data));
             cleanup();
             ExitFailure();
@@ -215,7 +216,7 @@ void encrypt_data(char *filepath, char *keypath, unsigned char *data)
     // Encrypt data and save to file
     AES_EncryptData(data, key, filepath);
     // Overwrite key and plaintext with 0 in memory
-    memset(key, 0, sizeof key);
+    memset(key, 0, KEY_SIZE);
     memset(data, 0, strlen((char*)data));
 }
 void decrypt_data(char *filepath, char *keypath, unsigned char** plaintext, int* plaintext_length)
