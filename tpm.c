@@ -48,7 +48,7 @@ int TPM_InitContext(void) {
     if(result != TSS_SUCCESS) {
         TPM_CloseContext();
         printf("Error during Initialization: Context Connect. Error 0x%08x:%s\n", result, (char *)Trspi_Error_String(result));
-        printf("Please make sure the TCS Daemon is running. Run 'sudo tcsd' to start it.\n", result, (char *)Trspi_Error_String(result));
+        printf("Please make sure the TCS Daemon is running. Run 'sudo tcsd' to start it.\n");
         return 1;
     }
 
