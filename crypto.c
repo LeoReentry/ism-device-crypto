@@ -290,4 +290,3 @@ void init(char *name)
         ExitFailure();
     print_info("Success.\n");
 }
-
